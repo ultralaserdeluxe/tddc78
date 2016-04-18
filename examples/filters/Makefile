@@ -16,7 +16,7 @@ all: blurc thresc
 
 .PHONY: clean
 clean:
-	-$(RM) *.o blur thresc *.a
+	-$(RM) *.o blurc thresc *.a
 
 blurc: ppmio.o gaussw.o blurfilter.o blurmain.o $(LIBMACTIME)
 	$(CC) -o $@ ppmio.o gaussw.o blurfilter.o blurmain.o -L. $(LFLAGS)
