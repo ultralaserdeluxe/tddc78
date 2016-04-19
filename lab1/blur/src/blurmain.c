@@ -12,6 +12,7 @@ int main (int argc, char ** argv) {
    int radius;
     int xsize, ysize, colmax;
     pixel src[MAX_PIXELS];
+    pixel dst[MAX_PIXELS];
     struct timespec stime, etime;
 #define MAX_RAD 1000
 
@@ -47,7 +48,7 @@ int main (int argc, char ** argv) {
 
     clock_gettime(CLOCK_REALTIME, &stime);
 
-    blurfilter(xsize, ysize, src, radius, w);
+    blurfilter(xsize, ysize, src, dst, radius, w);
 
     clock_gettime(CLOCK_REALTIME, &etime);
 
@@ -57,7 +58,7 @@ int main (int argc, char ** argv) {
     /* write result */
     printf("Writing output file\n");
     
-    if(write_ppm (argv[3], xsize, ysize, (char *)src) != 0)
+    if(write_ppm (argv[3], xsize, ysize, (char *)dst) != 0)
       exit(1);
 
 
