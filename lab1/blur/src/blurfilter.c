@@ -21,11 +21,9 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
-void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w){
-  int x,y,x2,y2, wi;
+void blurfilter(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
+  int x,y,x2,y2, wx, wy;
   double r,g,b,n, wc;
-  pixel dst[MAX_PIXELS];
-
 
   for (y=0; y<ysize; y++) {
     for (x=0; x<xsize; x++) {
@@ -33,21 +31,27 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
       g = w[0] * pix(src, x, y, xsize)->g;
       b = w[0] * pix(src, x, y, xsize)->b;
       n = w[0];
-      for ( wi=1; wi <= radius; wi++) {
-	wc = w[wi];
-	x2 = x - wi;
-	if(x2 >= 0) {
-	  r += wc * pix(src, x2, y, xsize)->r;
-	  g += wc * pix(src, x2, y, xsize)->g;
-	  b += wc * pix(src, x2, y, xsize)->b;
-	  n += wc;
-	}
-	x2 = x + wi;
-	if(x2 < xsize) {
-	  r += wc * pix(src, x2, y, xsize)->r;
-	  g += wc * pix(src, x2, y, xsize)->g;
-	  b += wc * pix(src, x2, y, xsize)->b;
-	  n += wc;
+      for ( wx=1; wx <= radius; wx++) {
+	for ( wy=1; wy <= radius; wy++) {
+	  wc = w[wx] * w[wy];
+
+	  x2 = x - wx;
+	  y2 = y - wy;
+
+	  if(x2 >= 0 || y2 >= 0) {
+	    r += wc * pix(src, x2, y2, xsize)->r;
+	    g += wc * pix(src, x2, y2, xsize)->g;
+	    b += wc * pix(src, x2, y2, xsize)->b;
+	    n += wc;
+	  }
+	  x2 = x + wx;
+	  y2 = y + wy;
+	  if(x2 < xsize || y2 < ysize) {
+	    r += wc * pix(src, x2, y2, xsize)->r;
+	    g += wc * pix(src, x2, y2, xsize)->g;
+	    b += wc * pix(src, x2, y2, xsize)->b;
+	    n += wc;
+	  }
 	}
       }
       pix(dst,x,y, xsize)->r = r/n;
@@ -55,36 +59,6 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
       pix(dst,x,y, xsize)->b = b/n;
     }
   }
-
-  for (y=0; y<ysize; y++) {
-    for (x=0; x<xsize; x++) {
-      r = w[0] * pix(dst, x, y, xsize)->r;
-      g = w[0] * pix(dst, x, y, xsize)->g;
-      b = w[0] * pix(dst, x, y, xsize)->b;
-      n = w[0];
-      for ( wi=1; wi <= radius; wi++) {
-	wc = w[wi];
-	y2 = y - wi;
-	if(y2 >= 0) {
-	  r += wc * pix(dst, x, y2, xsize)->r;
-	  g += wc * pix(dst, x, y2, xsize)->g;
-	  b += wc * pix(dst, x, y2, xsize)->b;
-	  n += wc;
-	}
-	y2 = y + wi;
-	if(y2 < ysize) {
-	  r += wc * pix(dst, x, y2, xsize)->r;
-	  g += wc * pix(dst, x, y2, xsize)->g;
-	  b += wc * pix(dst, x, y2, xsize)->b;
-	  n += wc;
-	}
-      }
-      pix(src,x,y, xsize)->r = r/n;
-      pix(src,x,y, xsize)->g = g/n;
-      pix(src,x,y, xsize)->b = b/n;
-    }
-  }
-
 }
 
 
