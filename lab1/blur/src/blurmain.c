@@ -29,9 +29,11 @@ void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, i
 
 
 int main (int argc, char ** argv) {
-  int rank, world_size;
-  pixel src[MAX_PIXELS];
-  int xsize, ysize, colmax, radius;
+  int rank, world_size, xsize, ysize, colmax, radius;;
+  /* pixel src[MAX_PIXELS]; */
+  /* pixel recvbuff[MAC_MEM];  */
+  pixel* src;
+  pixel* recvbuff; 
   struct timespec stime, etime;
 
   /* Set up MPI */
@@ -40,7 +42,6 @@ int main (int argc, char ** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   create_mpi_pixel_type();
 
-  pixel recvbuff[MAC_MEM];
   int ystarts_rad[world_size];
   int yends_rad[world_size];
   int counts[world_size];
@@ -50,11 +51,20 @@ int main (int argc, char ** argv) {
   
   /* Check arguments and read file */
   if(rank == ROOT) {
+
+    src = malloc(sizeof(double) * MAX_PIXELS);
+    /* printf("sizeof(double) * 3: %d\n", sizeof(double * 3)); */
+    
+    if(src == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
+    
     check_args(argc, argv, &radius);
     read_file(argv, &xsize, &ysize, &colmax, src);
     printf("Has read the image, generating coefficients\n");
   } 
-    
+  
   /* Send size data to processes */
   MPI_Bcast((void*)&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   MPI_Bcast((void*)&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
@@ -62,6 +72,15 @@ int main (int argc, char ** argv) {
 
   /* calculate some stuff */
   calc_stuff(ysize, xsize, world_size, radius, counts, offsets, ystarts_rad, yends_rad, offsets_rad, counts_rad);
+
+  if(rank != ROOT) {
+
+    recvbuff = malloc(sizeof(pixel) * MAX_PIXELS); //counts_rad[rank]);
+    if(src == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
+  }
   
   /* Gauss */
   double w[MAX_RAD];
@@ -78,17 +97,17 @@ int main (int argc, char ** argv) {
     }
     /* printf("Calling filter\n"); */
     printf("Overriding protocols.\n");
-    blurfilter(xsize, yends_rad[rank],  src, radius, w);
+    /* blurfilter(xsize, yends_rad[rank],  src, radius, w); */
   } else {
-    MPI_Recv((void*)&recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
-    blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
+    MPI_Recv((void*)recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
+    /* blurfilter(xsize, yends_rad[rank], recvbuff, radius, w); */
   }
 
   /* wait for every task, before getting the time. */
   MPI_Barrier(MPI_COMM_WORLD);
   clock_gettime(CLOCK_REALTIME, &etime);
   if(rank == ROOT) printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
-	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
+  	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
   
   /* send stuff back to main task */
   if(rank == ROOT) {
