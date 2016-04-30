@@ -30,12 +30,10 @@ void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, i
 
 int main (int argc, char ** argv) {
   int rank, world_size, xsize, ysize, colmax, radius;;
-  pixel src[MAX_PIXELS];
-  pixel recvbuff[MAC_MEM];
-  /* pixel* src; */
-  /* pixel* recvbuff;  */
+  pixel* src;
+  pixel* recvbuff;
   struct timespec stime, etime;
-
+  
   /* Set up MPI */
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -52,13 +50,12 @@ int main (int argc, char ** argv) {
   /* Check arguments and read file */
   if(rank == ROOT) {
 
-    /* src = malloc(sizeof(double) * MAX_PIXELS); */
-    /* /\* printf("sizeof(double) * 3: %d\n", sizeof(double * 3)); *\/ */
+    src = malloc(sizeof(pixel) * MAX_PIXELS);
     
-    /* if(src == NULL) { */
-    /*   printf("Process %d could not allocate memory, exiting.\n", rank); */
-    /*   exit(1); */
-    /* } */
+    if(src == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
     
     check_args(argc, argv, &radius);
     read_file(argv, &xsize, &ysize, &colmax, src);
@@ -73,14 +70,14 @@ int main (int argc, char ** argv) {
   /* calculate some stuff */
   calc_stuff(ysize, xsize, world_size, radius, counts, offsets, ystarts_rad, yends_rad, offsets_rad, counts_rad);
 
-  /* if(rank != ROOT) { */
+  if(rank != ROOT) {
 
-  /*   recvbuff = malloc(sizeof(pixel) * MAX_PIXELS); //counts_rad[rank]); */
-  /*   if(src == NULL) { */
-  /*     printf("Process %d could not allocate memory, exiting.\n", rank); */
-  /*     exit(1); */
-  /*   } */
-  /* } */
+    recvbuff = malloc(sizeof(pixel) * MAX_PIXELS); //counts_rad[rank]);
+    if(recvbuff == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
+  }
   
   /* Gauss */
   double w[MAX_RAD];
@@ -97,9 +94,12 @@ int main (int argc, char ** argv) {
     }
     /* printf("Calling filter\n"); */
     printf("Overriding protocols.\n");
+
     blurfilter(xsize, yends_rad[rank],  src, radius, w);
   } else {
     MPI_Recv((void*)recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
+
+
     blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
   }
 
