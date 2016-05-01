@@ -13,93 +13,140 @@
 
 #define MAX_RAD 1000
 #define ROOT 0
+#define MAC_MEM 700000
 
 MPI_Datatype mpi_pixel_type;
+MPI_Status status;
 
+int get_ystart_radius(int ysize, int rank, int world_size, int radius);
+int get_yend_radius(int ysize, int rank, int world_size, int radius);
 int get_ystart(int ysize, int rank, int world_size);
 int get_yend(int ysize, int rank, int world_size);
 void create_mpi_pixel_type();
 void check_args(int argc, char** argv, int* radius);
 void read_file(char** argv, int* xsize, int* ysize, int* colmax, pixel* buf);
+void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad);
+
 
 int main (int argc, char ** argv) {
+  int rank, world_size, xsize, ysize, colmax, radius;;
+  pixel* src;
+  pixel* recvbuff;
+  struct timespec stime, etime;
+  
   /* Set up MPI */
-  int rank, world_size;
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   create_mpi_pixel_type();
 
+  int ystarts_rad[world_size];
+  int yends_rad[world_size];
+  int counts[world_size];
+  int counts_rad[world_size];
+  int offsets[world_size];
+  int offsets_rad[world_size];
+  
   /* Check arguments and read file */
-  int radius;
-  int xsize, ysize, colmax;
-  pixel src[MAX_PIXELS];
   if(rank == ROOT) {
+
+    src = malloc(sizeof(pixel) * MAX_PIXELS);
+    
+    if(src == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
+    
     check_args(argc, argv, &radius);
     read_file(argv, &xsize, &ysize, &colmax, src);
-  }
-
+    printf("Has read the image, generating coefficients\n");
+  } 
+  
   /* Send size data to processes */
   MPI_Bcast((void*)&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   MPI_Bcast((void*)&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
-  MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);  
 
-  /* Allocate and send/recieve memory for own slice of the image */
-  int sendcounts[world_size];
-  int displs[world_size];
-  int ystarts[world_size];
-  int yends[world_size];
+  /* calculate some stuff */
+  calc_stuff(ysize, xsize, world_size, radius, counts, offsets, ystarts_rad, yends_rad, offsets_rad, counts_rad);
 
-  int i;
-  for(i = 0; i < world_size; i++){
-    ystarts[i] = get_ystart(ysize, i, world_size);
-    yends[i] = get_yend(ysize, i, world_size);
-    int size = (yends[i] - ystarts[i]) * xsize;
-    sendcounts[i] = size;
-    displs[i] = ystarts[i]*xsize;
+  if(rank != ROOT) {
+
+    recvbuff = malloc(sizeof(pixel) * MAX_PIXELS); //counts_rad[rank]);
+    if(recvbuff == NULL) {
+      printf("Process %d could not allocate memory, exiting.\n", rank);
+      exit(1);
+    }
   }
-
-  printf("rank: %d\t ystart: %d\t yend: %d\t diff: %d\t count %d\t displ %d\n", rank, ystarts[rank], yends[rank], yends[rank] - ystarts[rank], sendcounts[rank], displs[rank]);
-
-  pixel* data = (pixel*)malloc(sendcounts[rank] * sizeof(pixel));
-  MPI_Scatterv(&src, sendcounts, displs, mpi_pixel_type, data, sendcounts[rank], mpi_pixel_type, ROOT, MPI_COMM_WORLD);
-
-  /* TODO: Send shit to other processes */
-
+  
   /* Gauss */
   double w[MAX_RAD];
   get_gauss_weights(radius, w);
 
-  struct timespec stime, etime;
+  /* wait for every task, before getting the time. */
+  MPI_Barrier(MPI_COMM_WORLD);
   clock_gettime(CLOCK_REALTIME, &stime);
 
-  /* Filter */
-  blurfilter(xsize, yends[rank]-ystarts[rank], data, radius, w);
+  /* send parts to other tasks, and filter */
+  if(rank == ROOT) {
+    for(int i = 1; i < world_size; i++) {
+      MPI_Send((void*)&src[offsets_rad[i]], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
+    }
+    /* printf("Calling filter\n"); */
+    printf("Overriding protocols.\n");
 
+    blurfilter(xsize, yends_rad[rank],  src, radius, w);
+  } else {
+    MPI_Recv((void*)recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
+
+
+    blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
+  }
+
+  /* wait for every task, before getting the time. */
+  MPI_Barrier(MPI_COMM_WORLD);
   clock_gettime(CLOCK_REALTIME, &etime);
-
-  printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
-	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
-
-
-  MPI_Gatherv(data, sendcounts[rank], mpi_pixel_type, &src, sendcounts, displs, mpi_pixel_type, ROOT, MPI_COMM_WORLD);
-
-  /* write result */
-  if(rank == ROOT) printf("Writing output file\n");
-  if(rank == ROOT && write_ppm (argv[3], xsize, ysize, (char *)src) != 0) exit(1);
+  if(rank == ROOT) printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
+  	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
   
+  /* send stuff back to main task */
+  if(rank == ROOT) {
+    for(int i = 1; i < world_size; i++) {
+      MPI_Recv((void*)&src[offsets[i]], counts[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD, &status);
+    }
+  } else {
+    MPI_Send((void*)&recvbuff[radius*xsize], counts[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD);
+  }
+  
+  MPI_Finalize();
+
+  if(rank == ROOT) {
+    /* write result */    
+    printf("Writing output file\n");    
+    if(write_ppm (argv[3], xsize, ysize, (char *)src) != 0)
+      exit(1);
+  }
 
   /* Exit */
-  MPI_Finalize();
   return(0);
 }
 
+int get_ystart_radius(int ysize, int rank, int world_size, int radius){
+  int ystart = (rank * ceil((double)ysize / world_size)) - radius;
+  return rank == ROOT  ? 0 : ystart;
+}
+
+int get_yend_radius(int ysize, int rank, int world_size, int radius){
+  int yend = ((rank + 1) * ceil((double)ysize / world_size)) + radius;
+  return yend > ysize ? ysize : yend;
+}
+
 int get_ystart(int ysize, int rank, int world_size){
-  return rank * ceil(ysize / world_size);
+  return rank * ceil((double)ysize / world_size);
 }
 
 int get_yend(int ysize, int rank, int world_size){
-  int yend = (rank + 1) * ceil(ysize / world_size);
+  int yend = (rank + 1) * ceil((double)ysize / world_size);
   return ysize < yend ? ysize : yend;
 }
 
@@ -138,5 +185,20 @@ void read_file(char** argv, int* xsize, int* ysize, int* colmax, pixel* buf){
     exit(1);
   }
 }
+
+void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad) {
+  int ystart, yend;
+  for(int i = 0; i < world_size; i++) {
+    ystart = get_ystart(ysize, i, world_size);
+    yend = get_yend(ysize, i, world_size);
+    counts[i] = (yend - ystart) * xsize;
+    offsets[i] = ystart * xsize;
+    ystarts_rad[i] = get_ystart_radius(ysize, i, world_size, radius);
+    yends_rad[i] = get_yend_radius(ysize, i, world_size, radius);
+    offsets_rad[i] = ystarts_rad[i] * xsize;
+    counts_rad[i] = (yends_rad[i] - ystarts_rad[i]) * xsize;
+  }    
+}
+
 
  
