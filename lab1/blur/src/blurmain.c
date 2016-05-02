@@ -67,7 +67,7 @@ int main (int argc, char ** argv) {
   /* Allocate more memory. */
   pixel* recvbuff;
   if(rank != ROOT) {
-    recvbuff = malloc(sizeof(pixel) * MAX_PIXELS);
+    recvbuff = malloc(sizeof(pixel) * counts_rad[rank]);
     if(recvbuff == NULL) {
       printf("Process %d could not allocate memory, exiting.\n", rank);
       exit(1);
