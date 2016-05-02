@@ -29,29 +29,19 @@ void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, i
 
 
 int main (int argc, char ** argv) {
-  int rank, world_size, xsize, ysize, colmax, radius;;
-  pixel* src;
-  pixel* recvbuff;
-  struct timespec stime, etime;
-  
-  /* Set up MPI */
+  int rank, world_size;
+
+  /* Set up MPI. */
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   create_mpi_pixel_type();
-
-  int ystarts_rad[world_size];
-  int yends_rad[world_size];
-  int counts[world_size];
-  int counts_rad[world_size];
-  int offsets[world_size];
-  int offsets_rad[world_size];
   
-  /* Check arguments and read file */
+  /* Check arguments, read file and allocate memory. */
+  pixel* src;
+  int xsize, ysize, colmax, radius;
   if(rank == ROOT) {
-
     src = malloc(sizeof(pixel) * MAX_PIXELS);
-    
     if(src == NULL) {
       printf("Process %d could not allocate memory, exiting.\n", rank);
       exit(1);
@@ -59,19 +49,26 @@ int main (int argc, char ** argv) {
     
     check_args(argc, argv, &radius);
     read_file(argv, &xsize, &ysize, &colmax, src);
-    printf("Has read the image, generating coefficients\n");
+    printf("Has read the image.\n");
   } 
   
-  /* Send size data to processes */
+  /* Send size data to processes. */
   MPI_Bcast((void*)&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   MPI_Bcast((void*)&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);  
 
-  /* calculate some stuff */
+  /* Calculate some stuff. */
+  int ystarts_rad[world_size];
+  int yends_rad[world_size];
+  int counts[world_size];
+  int counts_rad[world_size];
+  int offsets[world_size];
+  int offsets_rad[world_size];
   calc_stuff(ysize, xsize, world_size, radius, counts, offsets, ystarts_rad, yends_rad, offsets_rad, counts_rad);
 
+  /* Allocate more memory. */
+  pixel* recvbuff;
   if(rank != ROOT) {
-
     recvbuff = malloc(sizeof(pixel) * counts_rad[rank]);
     if(recvbuff == NULL) {
       printf("Process %d could not allocate memory, exiting.\n", rank);
@@ -83,49 +80,45 @@ int main (int argc, char ** argv) {
   double w[MAX_RAD];
   get_gauss_weights(radius, w);
 
-  /* wait for every task, before getting the time. */
+  /* Wait for every task, before getting the time. */
   MPI_Barrier(MPI_COMM_WORLD);
-  clock_gettime(CLOCK_REALTIME, &stime);
+  double start_time = MPI_Wtime();
 
-  /* send parts to other tasks, and filter */
+  /* Send parts to other tasks, and filter. */
   if(rank == ROOT) {
-    for(int i = 1; i < world_size; i++) {
-      MPI_Send((void*)&src[offsets_rad[i]], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
-    }
-    /* printf("Calling filter\n"); */
+    for(int i = 1; i < world_size; i++) MPI_Send((void*)&src[offsets_rad[i]], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
     printf("Overriding protocols.\n");
-
     blurfilter(xsize, yends_rad[rank],  src, radius, w);
   } else {
     MPI_Recv((void*)recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
-
-
     blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
   }
 
-  /* wait for every task, before getting the time. */
+  /* Wait for every task, before getting the time. */
   MPI_Barrier(MPI_COMM_WORLD);
-  clock_gettime(CLOCK_REALTIME, &etime);
+  double end_time = MPI_Wtime();
+  if(rank == ROOT) printf("Filtering took: %f secs\n", end_time - start_time);
   
-  if(rank == ROOT) printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
-  	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
-  
-  /* send stuff back to main task */
+  /* Send stuff back to main task. */
   if(rank == ROOT) {
     for(int i = 1; i < world_size; i++) {
       MPI_Recv((void*)&src[offsets[i]], counts[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD, &status);
     }
   } else {
     MPI_Send((void*)&recvbuff[radius*xsize], counts[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD);
+    free(recvbuff);
   }
   
   MPI_Finalize();
 
+  /* Write result. */    
   if(rank == ROOT) {
-    /* write result */    
     printf("Writing output file\n");    
-    if(write_ppm (argv[3], xsize, ysize, (char *)src) != 0)
+    if(write_ppm (argv[3], xsize, ysize, (char *)src) != 0){
+      free(src);
       exit(1);
+    }
+    free(src);
   }
 
   /* Exit */
