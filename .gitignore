@@ -1,3 +1,6 @@
+# Binaries in bin folder
+**/bin/*
+
 # Mac
 .DS_Store
 
