@@ -13,7 +13,6 @@
 
 #define MAX_RAD 1000
 #define ROOT 0
-#define MAC_MEM 700000
 
 MPI_Datatype mpi_pixel_type;
 MPI_Status status;
