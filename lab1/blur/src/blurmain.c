@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <math.h>
 
 #include <mpi.h>
@@ -9,7 +8,6 @@
 #include "ppmio.h"
 #include "blurfilter.h"
 #include "gaussw.h"
-#include "mactime.h"
 
 #define MAX_RAD 1000
 #define ROOT 0
