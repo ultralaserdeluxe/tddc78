@@ -35,10 +35,11 @@ int read_ppm (const char * fname,
   sscanf(line, "%d%d", xpix, ypix);
   fscanf(fp, "%d\n", max);
 
-  if(*xpix * *ypix > MAX_PIXELS) {
-     fprintf (stderr, "Image size is too big\n");
+  if(0) {
+    /* if(*xpix * *ypix > MAX_PIXELS) { */
+    fprintf (stderr, "Image size is too big\n");
     return 4;
- };
+  };
 
   if (strncmp(ftype, ctype, 2) == 0) {
     if (fread (data, sizeof (char), *xpix * *ypix * 3, fp) != 
