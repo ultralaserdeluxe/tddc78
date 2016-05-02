@@ -72,7 +72,7 @@ int main (int argc, char ** argv) {
 
   if(rank != ROOT) {
 
-    recvbuff = malloc(sizeof(pixel) * MAX_PIXELS); //counts_rad[rank]);
+    recvbuff = malloc(sizeof(pixel) * counts_rad[rank]);
     if(recvbuff == NULL) {
       printf("Process %d could not allocate memory, exiting.\n", rank);
       exit(1);
@@ -106,6 +106,7 @@ int main (int argc, char ** argv) {
   /* wait for every task, before getting the time. */
   MPI_Barrier(MPI_COMM_WORLD);
   clock_gettime(CLOCK_REALTIME, &etime);
+  
   if(rank == ROOT) printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
   	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
   
