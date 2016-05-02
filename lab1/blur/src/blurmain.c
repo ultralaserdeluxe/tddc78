@@ -48,12 +48,13 @@ int main (int argc, char ** argv) {
     read_file(argv, &xsize, &ysize, &colmax, src);
     printf("Has read the image.\n");
   } 
-  
+
+
   /* Send size data to processes. */
   MPI_Bcast((void*)&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   MPI_Bcast((void*)&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
-  MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);  
-
+  MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  
   /* Calculate some stuff. */
   int ystarts_rad[world_size];
   int yends_rad[world_size];
@@ -72,6 +73,8 @@ int main (int argc, char ** argv) {
       exit(1);
     }
   }
+
+
   
   /* Gauss */
   double w[MAX_RAD];
