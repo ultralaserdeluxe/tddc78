@@ -15,7 +15,7 @@ all: $(BIN_FULL_NAME)
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
-$(BIN_FULL_NAME): $(OBJ_DIR)/$(BIN_NAME).o $(OBJ_DIR)/thresfilter.o $(OBJ_DIR)/ppmio.o $(OBJ_DIR)/ppm.o
+$(BIN_FULL_NAME): $(OBJ_DIR)/$(BIN_NAME).o $(OBJ_DIR)/ppm.o
 	mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ -l mpi
 
