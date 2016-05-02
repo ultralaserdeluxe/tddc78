@@ -5,12 +5,31 @@
 
 /* Pixel Declaration. */
 #define PIXEL(image,x,y) ((image)+((y)*(xsize)+(x)))
-
-/* NOTE: This structure must not be padded! */
 typedef struct _pixel {
   unsigned char r,g,b;
 } pixel;
 
+pixel* allocate_image(int size);
+pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax);
+void check_args(int argc, char** argv);
+void threshold_filter(pixel* image, int xsize, int ysize, int colmax);
+void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image);
+
+int main(int argc, char** argv)
+{
+  check_args(argc, argv);
+
+  int xsize;
+  int ysize;
+  int colmax;
+  pixel* image = read_file(argv, &xsize, &ysize, &colmax);
+
+  threshold_filter(image, xsize, ysize, colmax);
+
+  write_result(argv, xsize, ysize, colmax, image);
+
+  exit(0);
+}
 
 pixel* allocate_image(int size)
 {
@@ -23,44 +42,43 @@ pixel* allocate_image(int size)
   return image;
 }
 
-
-int main(int argc, char** argv)
-{
-  /* Take care of the arguments. */
-  if (argc != 3) {
-    fprintf(stderr, "Usage: %s infile outfile\n", argv[0]);
-    exit(2);
-  }
-
+pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax){
   FILE* infile;
   if (!(infile = fopen(argv[1], "r"))) {
     fprintf(stderr, "Error when opening %s\n", argv[1]);
     exit(1);
   } 
 
-
-  /* Read file. */
   int magic = ppm_readmagicnumber(infile);
   if (magic != 'P'*256+'6') {
     fprintf(stderr, "Wrong magic number\n");
     exit(1);
   }
-  int xsize = ppm_readint(infile);
-  int ysize = ppm_readint(infile);
-  int colmax = ppm_readint(infile);
-  if (colmax > 255) {
+  *xsize = ppm_readint(infile);
+  *ysize = ppm_readint(infile);
+  *colmax = ppm_readint(infile);
+  if (*colmax > 255) {
     fprintf(stderr, "Too large maximum color-component value\n");
     exit(1);
   }
     
-  pixel* image = allocate_image(xsize*ysize);
-  if (!fread(image, sizeof(pixel), xsize*ysize, infile)) {
+  pixel* image = allocate_image((*xsize)*(*ysize));
+  if (!fread(image, sizeof(pixel), (*xsize)*(*ysize), infile)) {
     fprintf(stderr, "error in fread\n");
     exit(1);
   }
 
+  return image;
+}
 
-  /* Filter. */
+void check_args(int argc, char** argv){
+  if (argc != 3) {
+    fprintf(stderr, "Usage: %s infile outfile\n", argv[0]);
+    exit(2);
+  }
+}
+
+void threshold_filter(pixel* image, int xsize, int ysize, int colmax){
   int x, y;
   int sum = 0;
   for (y=0; y<ysize; y++) {
@@ -86,8 +104,9 @@ int main(int argc, char** argv)
       PIXEL(image,x,y)->b = pval;
     }
   }
+}
 
-  /* Write result. */
+void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image){
   FILE* outfile;
   if (!(outfile = fopen(argv[2], "w"))) {
     fprintf(stderr, "Error when opening %s\n", argv[2]);
@@ -98,6 +117,4 @@ int main(int argc, char** argv)
     fprintf(stderr, "error in fwrite");
     exit(1);
   }
-
-  exit(0);
 }
