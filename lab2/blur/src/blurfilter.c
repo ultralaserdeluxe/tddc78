@@ -21,23 +21,20 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
-void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w){
-
-  
-  int x,y,x2,y2, wi;
-  double r,g,b,n, wc;
-  pixel* dst = malloc(sizeof(pixel) * 1000*1000);
-  
-  
+void blurfilter_x(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
+  int y;
   for (y=0; y<ysize; y++) {
+    int x;
     for (x=0; x<xsize; x++) {
-      r = w[0] * pix(src, x, y, xsize)->r;
-      g = w[0] * pix(src, x, y, xsize)->g;
-      b = w[0] * pix(src, x, y, xsize)->b;
-      n = w[0];
-      for ( wi=1; wi <= radius; wi++) {
-  	wc = w[wi];
-  	x2 = x - wi;
+      double r = w[0] * pix(src, x, y, xsize)->r;
+      double g = w[0] * pix(src, x, y, xsize)->g;
+      double b = w[0] * pix(src, x, y, xsize)->b;
+      double n = w[0];
+
+      int wi;
+      for (wi=1; wi <= radius; wi++) {
+  	double wc = w[wi];
+  	int x2 = x - wi;
   	if(x2 >= 0) {
   	  r += wc * pix(src, x2, y, xsize)->r;
   	  g += wc * pix(src, x2, y, xsize)->g;
@@ -57,38 +54,40 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
       pix(dst,x,y, xsize)->b = b/n;
     }
   }
+}
 
-  
+void blurfilter_y(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
+  int y;
   for (y=0; y<ysize; y++) {
+    int x;
     for (x=0; x<xsize; x++) {
-      r = w[0] * pix(dst, x, y, xsize)->r;
-      g = w[0] * pix(dst, x, y, xsize)->g;
-      b = w[0] * pix(dst, x, y, xsize)->b;
-      n = w[0];
+      double r = w[0] * pix(src, x, y, xsize)->r;
+      double g = w[0] * pix(src, x, y, xsize)->g;
+      double b = w[0] * pix(src, x, y, xsize)->b;
+      double n = w[0];
+
+      int wi;
       for ( wi=1; wi <= radius; wi++) {
-  	wc = w[wi];
-  	y2 = y - wi;
+  	double wc = w[wi];
+  	
+	int y2 = y - wi;
   	if(y2 >= 0) {
-  	  r += wc * pix(dst, x, y2, xsize)->r;
-  	  g += wc * pix(dst, x, y2, xsize)->g;
-  	  b += wc * pix(dst, x, y2, xsize)->b;
+  	  r += wc * pix(src, x, y2, xsize)->r;
+  	  g += wc * pix(src, x, y2, xsize)->g;
+  	  b += wc * pix(src, x, y2, xsize)->b;
   	  n += wc;
   	}
   	y2 = y + wi;
   	if(y2 < ysize) {
-  	  r += wc * pix(dst, x, y2, xsize)->r;
-  	  g += wc * pix(dst, x, y2, xsize)->g;
-  	  b += wc * pix(dst, x, y2, xsize)->b;
+  	  r += wc * pix(src, x, y2, xsize)->r;
+  	  g += wc * pix(src, x, y2, xsize)->g;
+  	  b += wc * pix(src, x, y2, xsize)->b;
   	  n += wc;
   	}
       }
-      pix(src,x,y, xsize)->r = r/n;
-      pix(src,x,y, xsize)->g = g/n;
-      pix(src,x,y, xsize)->b = b/n;
+      pix(dst,x,y, xsize)->r = r/n;
+      pix(dst,x,y, xsize)->g = g/n;
+      pix(dst,x,y, xsize)->b = b/n;
     }
   }
-  free(dst);
 }
-
-
-

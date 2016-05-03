@@ -37,6 +37,12 @@ int main (int argc, char ** argv) {
   double w[MAX_RAD];
   get_gauss_weights(radius, w);
 
+  /* Filter */
+  pixel* intermediary = (pixel*)malloc(sizeof(pixel) * xsize * ysize);
+  blurfilter_x(xsize, ysize, image, intermediary, radius, w);
+  blurfilter_y(xsize, ysize, intermediary, image, radius, w);
+  free(intermediary);
+
   /* Write result. */    
   printf("Writing output file\n");    
   write_result(argv, xsize, ysize, colmax, image);
