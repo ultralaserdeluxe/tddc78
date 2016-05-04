@@ -11,41 +11,18 @@
 
 #define MAX_RAD 1000
 #define ROOT 0
-#define NUM_THREADS 4
 
-typedef struct thread_data {
-  int pid;
-  int xsize;
-  int ysize;
-  int radius;
-  int ystart;
-  int yend;
-  int ystart_rad;
-  int yend_rad;
-  int count_rad;
-  double w[MAX_RAD];
-  pixel* image;
-} thread_data;
-
-
-int get_ystart(int ysize, int rank, int world_size);
-int get_yend(int ysize, int rank, int world_size);
 int get_ystart_radius(int ysize, int rank, int world_size, int radius);
 int get_yend_radius(int ysize, int rank, int world_size, int radius);
+int get_ystart(int ysize, int rank, int world_size);
+int get_yend(int ysize, int rank, int world_size);
 void check_args(int argc, char** argv, int* radius);
 pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax);
 pixel* allocate_image(int size);
 void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image);
-void calc_stuff(int ysize, int xsize, int radius, int world_size, thread_data* t);
+void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts,
+		int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad);
 
-void shakenbake(thread_data t_data);
-
-/* we might aswell skip this function and just pass blurfilter directly if 
-   nothing more will be done here. */
-void shakenbake(thread_data t_data) {
-  blurfilter(t_data.xsize, t_data.ysize, t_data.image, t_data.radius, t_data.w);
-  pthread_exit(NULL);
-}
 
 int main (int argc, char ** argv) {
   /* Check arguments, read file and allocate memory. */
@@ -60,19 +37,11 @@ int main (int argc, char ** argv) {
   double w[MAX_RAD];
   get_gauss_weights(radius, w);
 
-  pthread_t threads[NUM_THREADS];
-  thread_data t_data[NUM_THREADS];
-  for(int i = 0; i < NUM_THREADS; i++) {
-    t_data[i].pid = i;
-    calc_stuff(xsize, ysize, radius, NUM_THREADS, &t_data[i]);
-    t_data[i].w[MAX_RAD-1] = w[MAX_RAD-1]; // why -1?
-    t_data[i].image = image;
-    pthread_create(&threads[i], NULL, shakenbake, &t_data);
-  }
-
-  for(int i = 0; i < NUM_THREADS; i++) {
-    pthread_join(threads[i], NULL);
-  }
+  /* Filter */
+  pixel* intermediary = (pixel*)malloc(sizeof(pixel) * xsize * ysize);
+  blurfilter_x(xsize, ysize, image, intermediary, radius, w);
+  blurfilter_y(xsize, ysize, intermediary, image, radius, w);
+  free(intermediary);
 
   /* Write result. */    
   printf("Writing output file\n");    
@@ -81,7 +50,7 @@ int main (int argc, char ** argv) {
   /* Exit */
   return(0);
 }
- 
+
 int get_ystart_radius(int ysize, int rank, int world_size, int radius){
   int ystart = (rank * ceil((double)ysize / world_size)) - radius;
   return rank == ROOT  ? 0 : ystart;
@@ -90,21 +59,6 @@ int get_ystart_radius(int ysize, int rank, int world_size, int radius){
 int get_yend_radius(int ysize, int rank, int world_size, int radius){
   int yend = ((rank + 1) * ceil((double)ysize / world_size)) + radius;
   return yend > ysize ? ysize : yend;
-}
-
-void calc_stuff(int ysize, int xsize, int radius, int world_size, thread_data* t) {
-  t->xsize = xsize;
-  t->ysize = ysize;
-  t->radius = radius;
-  t->ystart = get_ystart(ysize, t->pid, world_size);
-  t->yend = get_yend(ysize, t->pid, world_size);
-  t->ystart_rad = get_ystart_radius(ysize, t->pid, world_size, radius);
-  t->yend_rad = get_yend_radius(ysize, t->pid, world_size, radius);
-  t->count_rad = (t->yend_rad - t->ystart_rad) * xsize;
-  /* don't think we need these any longer? */
-  /* t.offsets_rad = ystarts_rad[i] * xsize; */
-  /* counts[i] = (yend - ystart) * xsize; */
-  /* t.offsets = ystart * xsize; */
 }
 
 int get_ystart(int ysize, int rank, int world_size){
@@ -170,6 +124,21 @@ void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image){
     free(image);
     exit(1);
   }
+}
+
+
+void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad) {
+  int ystart, yend;
+  for(int i = 0; i < world_size; i++) {
+    ystart = get_ystart(ysize, i, world_size);
+    yend = get_yend(ysize, i, world_size);
+    counts[i] = (yend - ystart) * xsize;
+    offsets[i] = ystart * xsize;
+    ystarts_rad[i] = get_ystart_radius(ysize, i, world_size, radius);
+    yends_rad[i] = get_yend_radius(ysize, i, world_size, radius);
+    offsets_rad[i] = ystarts_rad[i] * xsize;
+    counts_rad[i] = (yends_rad[i] - ystarts_rad[i]) * xsize;
+  }    
 }
 
 pixel* allocate_image(int size){

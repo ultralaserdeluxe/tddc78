@@ -21,8 +21,20 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
+/* <<<<<<< HEAD */
+/* void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w){ */
+
+  
+/*   int x,y,x2,y2, wi; */
+/*   double r,g,b,n, wc; */
+/*   pixel* dst = malloc(sizeof(pixel) * 1000*1000); */
+
+  
+/* ======= */
 void blurfilter_x(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
   int y;
+/* >>>>>>> ea9c4c274e0c228b938f47ebf361ea02abe153b3 */
+  
   for (y=0; y<ysize; y++) {
     int x;
     for (x=0; x<xsize; x++) {
@@ -41,7 +53,7 @@ void blurfilter_x(const int xsize, const int ysize, pixel* src, pixel* dst, cons
   	  b += wc * pix(src, x2, y, xsize)->b;
   	  n += wc;
   	}
-  	x2 = x + wi;
+	x2 = x + wi;
   	if(x2 < xsize) {
   	  r += wc * pix(src, x2, y, xsize)->r;
   	  g += wc * pix(src, x2, y, xsize)->g;
