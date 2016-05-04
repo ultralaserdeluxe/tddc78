@@ -21,9 +21,9 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
-void blurfilter_x(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
+void blurfilter_x(const int ystart, const int yend,  const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
   int y;
-  for (y=0; y<ysize; y++) {
+  for (y=ystart; y<yend; y++) {
     int x;
     for (x=0; x<xsize; x++) {
       double r = w[0] * pix(src, x, y, xsize)->r;
@@ -56,9 +56,9 @@ void blurfilter_x(const int xsize, const int ysize, pixel* src, pixel* dst, cons
   }
 }
 
-void blurfilter_y(const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
+void blurfilter_y(const int ystart, const int yend,  const int xsize, const int ysize, pixel* src, pixel* dst, const int radius, const double *w){
   int y;
-  for (y=0; y<ysize; y++) {
+  for (y=ystart; y<yend; y++) {
     int x;
     for (x=0; x<xsize; x++) {
       double r = w[0] * pix(src, x, y, xsize)->r;
