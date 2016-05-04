@@ -32,7 +32,7 @@ typedef struct thread_data_t{
 } thread_data;
 
 
-void* thread_func(void* param){
+void* thread_blur_x(void* param){
   thread_data* t_data = (thread_data*)param;
   
   int xsize = *(t_data->xsize);
@@ -43,15 +43,23 @@ void* thread_func(void* param){
   int ystart = get_ystart(ysize, t_data->tid, n_workers);
   int yend = get_yend(ysize, t_data->tid, n_workers);
 
-  printf("Filter parameters for thread %d: ystart=%d yend=%d.\n", t_data->tid, ystart, yend);
-
-  /* Modify filter to work with offset */
   printf("Running X filter in thread %d.\n", t_data->tid);
   blurfilter_x(ystart, yend, xsize, ysize, t_data->image, t_data->intermediary, radius, t_data->w);
 
+  return NULL;
+}
 
+void* thread_blur_y(void* param){
+  thread_data* t_data = (thread_data*)param;
+  
+  int xsize = *(t_data->xsize);
+  int ysize = *(t_data->ysize);
+  int radius = *(t_data->radius);
+  int n_workers = *(t_data->n_workers);
 
-  /* TODO: Sync threads here */
+  int ystart = get_ystart(ysize, t_data->tid, n_workers);
+  int yend = get_yend(ysize, t_data->tid, n_workers);
+
   printf("Running Y filter in thread %d.\n", t_data->tid);
   blurfilter_y(ystart, yend, xsize, ysize, t_data->intermediary, t_data->image, radius, t_data->w);
 
@@ -75,12 +83,11 @@ int main (int argc, char ** argv) {
   /* Create threads */
   pthread_t workers[n_workers];
   thread_data t_data[n_workers];
-
+  
   pixel* intermediary = allocate_image(xsize * ysize);
 
   int i;
   for(i = 0; i < n_workers; i++){
-    /* TODO: Calc stuff */
     t_data[i].tid = i;
     t_data[i].n_workers = &n_workers;
     t_data[i].xsize = &xsize;
@@ -90,13 +97,26 @@ int main (int argc, char ** argv) {
     t_data[i].w = w;
     t_data[i].image = image;
     t_data[i].intermediary = intermediary;
+  }
 
-    pthread_create(&workers[i], NULL, thread_func, &t_data[i]);
+
+  /* TODO: Start measure time*/
+  for(i = 0; i < n_workers; i++){
+    pthread_create(&workers[i], NULL, thread_blur_x, &t_data[i]);
   }
 
   for(i = 0; i < n_workers; i++){
     pthread_join(workers[i], NULL);
   }
+
+  for(i = 0; i < n_workers; i++){
+    pthread_create(&workers[i], NULL, thread_blur_y, &t_data[i]);
+  }
+
+  for(i = 0; i < n_workers; i++){
+    pthread_join(workers[i], NULL);
+  }
+  /* TODO: End measure time */
 
   free(intermediary);
 
