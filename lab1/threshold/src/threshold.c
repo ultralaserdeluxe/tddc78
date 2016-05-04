@@ -160,8 +160,8 @@ void threshold_filter(pixel* image, int xsize, int ysize, int colmax, int world_
   for(i = 0; i < world_size; i++){
     avg += other_avg[i];
   }
+  
   avg /= world_size;
-  printf("avg: %d\n", avg);
   
   for (y=0; y<ysize; y++) {
     for (x=0; x<xsize; x++) {

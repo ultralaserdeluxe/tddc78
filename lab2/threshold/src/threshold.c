@@ -37,12 +37,14 @@ int get_ystart(int ysize, int rank, int world_size);
 
 int main(int argc, char** argv)
 {
+  printf("Checking arguments.\n");
   int n_workers;
   check_args(argc, argv, &n_workers);
-  
+
+  printf("Reading file.\n");
   int xsize, ysize, colmax;
   pixel* image = read_file(argv, &xsize, &ysize, &colmax);
-  printf("Has read the image.\n");
+
 
   pthread_t workers[n_workers];
   thread_data t_data[n_workers];
@@ -61,8 +63,8 @@ int main(int argc, char** argv)
   /* 	 rank, ystarts[rank], yends[rank], yends[rank] - ystarts[rank], sendcounts[rank], displs[rank]); */
 
   /* start timing */
-  struct timespec start_time;
-  clock_gettime(0, &start_time);
+  struct timespec stime;
+  clock_gettime(0, &stime);
   
   /* calculate average. */
   for(i = 0; i < n_workers; i++){
@@ -80,8 +82,6 @@ int main(int argc, char** argv)
   }
   
   avg /= n_workers;
-  printf("average: %d\n", avg);
-
   
   /* filter */
   printf("Running filter.\n");
@@ -95,9 +95,10 @@ int main(int argc, char** argv)
   }
 
   /* stop timing */
-  struct timespec end_time;
-  clock_gettime(0, &end_time);
-  /* printf("Filtering took %f seconds.\n", end_time - start_time); */
+  struct timespec etime;
+  clock_gettime(0, &etime);
+  printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
+  	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
   
   printf("Writing output.\n");
   write_result(argv, xsize, ysize, colmax, image);
