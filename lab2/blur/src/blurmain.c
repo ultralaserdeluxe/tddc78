@@ -10,22 +10,18 @@
 #include "gaussw.h"
 
 #define MAX_RAD 1000
-#define ROOT 0
 
-int get_ystart_radius(int ysize, int rank, int world_size, int radius);
-int get_yend_radius(int ysize, int rank, int world_size, int radius);
 int get_ystart(int ysize, int rank, int world_size);
 int get_yend(int ysize, int rank, int world_size);
 void check_args(int argc, char** argv, int* radius, int* n_workers);
 pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax);
 pixel* allocate_image(int size);
 void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image);
-void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts,
-		int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad);
 
 
 typedef struct thread_data_t{
   int tid;
+  int* n_workers;
   int* xsize;
   int* ysize;
   int* radius;
@@ -38,18 +34,26 @@ typedef struct thread_data_t{
 
 void* thread_func(void* param){
   thread_data* t_data = (thread_data*)param;
-
+  
   int xsize = *(t_data->xsize);
   int ysize = *(t_data->ysize);
   int radius = *(t_data->radius);
+  int n_workers = *(t_data->n_workers);
+
+  int ystart = get_ystart(ysize, t_data->tid, n_workers);
+  int yend = get_yend(ysize, t_data->tid, n_workers);
+
+  printf("Filter parameters for thread %d: ystart=%d yend=%d.\n", t_data->tid, ystart, yend);
 
   /* Modify filter to work with offset */
   printf("Running X filter in thread %d.\n", t_data->tid);
-  blurfilter_x(xsize, ysize, t_data->image, t_data->intermediary, radius, t_data->w);
+  blurfilter_x(ystart, yend, xsize, ysize, t_data->image, t_data->intermediary, radius, t_data->w);
+
+
 
   /* TODO: Sync threads here */
   printf("Running Y filter in thread %d.\n", t_data->tid);
-  blurfilter_y(xsize, ysize, t_data->intermediary, t_data->image, radius, t_data->w);
+  blurfilter_y(ystart, yend, xsize, ysize, t_data->intermediary, t_data->image, radius, t_data->w);
 
   return NULL;
 }
@@ -72,12 +76,13 @@ int main (int argc, char ** argv) {
   pthread_t workers[n_workers];
   thread_data t_data[n_workers];
 
-  pixel* intermediary = (pixel*)malloc(sizeof(pixel) * xsize * ysize);
+  pixel* intermediary = allocate_image(xsize * ysize);
 
   int i;
   for(i = 0; i < n_workers; i++){
     /* TODO: Calc stuff */
     t_data[i].tid = i;
+    t_data[i].n_workers = &n_workers;
     t_data[i].xsize = &xsize;
     t_data[i].ysize = &ysize;
     t_data[i].radius = &radius;
@@ -102,16 +107,6 @@ int main (int argc, char ** argv) {
 
   /* Exit */
   return(0);
-}
-
-int get_ystart_radius(int ysize, int rank, int world_size, int radius){
-  int ystart = (rank * ceil((double)ysize / world_size)) - radius;
-  return rank == ROOT  ? 0 : ystart;
-}
-
-int get_yend_radius(int ysize, int rank, int world_size, int radius){
-  int yend = ((rank + 1) * ceil((double)ysize / world_size)) + radius;
-  return yend > ysize ? ysize : yend;
 }
 
 int get_ystart(int ysize, int rank, int world_size){
@@ -182,21 +177,6 @@ void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image){
     free(image);
     exit(1);
   }
-}
-
-
-void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, int* offsets, int* ystarts_rad, int* yends_rad, int* offsets_rad, int* counts_rad) {
-  int ystart, yend;
-  for(int i = 0; i < world_size; i++) {
-    ystart = get_ystart(ysize, i, world_size);
-    yend = get_yend(ysize, i, world_size);
-    counts[i] = (yend - ystart) * xsize;
-    offsets[i] = ystart * xsize;
-    ystarts_rad[i] = get_ystart_radius(ysize, i, world_size, radius);
-    yends_rad[i] = get_yend_radius(ysize, i, world_size, radius);
-    offsets_rad[i] = ystarts_rad[i] * xsize;
-    counts_rad[i] = (yends_rad[i] - ystarts_rad[i]) * xsize;
-  }    
 }
 
 pixel* allocate_image(int size){
