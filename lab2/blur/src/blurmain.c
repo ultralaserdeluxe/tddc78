@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include <pthread.h>
 
@@ -10,14 +11,6 @@
 #include "gaussw.h"
 
 #define MAX_RAD 1000
-
-int get_ystart(int ysize, int rank, int world_size);
-int get_yend(int ysize, int rank, int world_size);
-void check_args(int argc, char** argv, int* radius, int* n_workers);
-pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax);
-pixel* allocate_image(int size);
-void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image);
-
 
 typedef struct thread_data_t{
   int tid;
@@ -31,6 +24,13 @@ typedef struct thread_data_t{
   double* w;
 } thread_data;
 
+int clock_gettime(int clk_id, struct timespec* t);
+int get_ystart(int ysize, int rank, int world_size);
+int get_yend(int ysize, int rank, int world_size);
+void check_args(int argc, char** argv, int* radius, int* n_workers);
+pixel* read_file(char** argv, int* xsize, int* ysize, int* colmax);
+pixel* allocate_image(int size);
+void write_result(char **argv, int xsize, int ysize, int colmax, pixel* image);
 
 void* thread_blur_x(void* param){
   thread_data* t_data = (thread_data*)param;
@@ -43,7 +43,7 @@ void* thread_blur_x(void* param){
   int ystart = get_ystart(ysize, t_data->tid, n_workers);
   int yend = get_yend(ysize, t_data->tid, n_workers);
 
-  printf("Running X filter in thread %d.\n", t_data->tid);
+  /* printf("Running X filter in thread %d.\n", t_data->tid); */
   blurfilter_x(ystart, yend, xsize, ysize, t_data->image, t_data->intermediary, radius, t_data->w);
 
   return NULL;
@@ -60,7 +60,7 @@ void* thread_blur_y(void* param){
   int ystart = get_ystart(ysize, t_data->tid, n_workers);
   int yend = get_yend(ysize, t_data->tid, n_workers);
 
-  printf("Running Y filter in thread %d.\n", t_data->tid);
+  /* printf("Running Y filter in thread %d.\n", t_data->tid); */
   blurfilter_y(ystart, yend, xsize, ysize, t_data->intermediary, t_data->image, radius, t_data->w);
 
   return NULL;
@@ -70,6 +70,7 @@ int main (int argc, char ** argv) {
   /* Check arguments, read file and allocate memory. */
   int radius;
   int n_workers;
+  struct timespec stime, etime;
   check_args(argc, argv, &radius, &n_workers);
 
   int xsize, ysize, colmax;
@@ -85,7 +86,7 @@ int main (int argc, char ** argv) {
   thread_data t_data[n_workers];
   
   pixel* intermediary = allocate_image(xsize * ysize);
-
+  
   int i;
   for(i = 0; i < n_workers; i++){
     t_data[i].tid = i;
@@ -99,8 +100,9 @@ int main (int argc, char ** argv) {
     t_data[i].intermediary = intermediary;
   }
 
-
-  /* TODO: Start measure time*/
+  /* Start measure time*/
+  clock_gettime(0, &stime);
+  
   for(i = 0; i < n_workers; i++){
     pthread_create(&workers[i], NULL, thread_blur_x, &t_data[i]);
   }
@@ -116,7 +118,9 @@ int main (int argc, char ** argv) {
   for(i = 0; i < n_workers; i++){
     pthread_join(workers[i], NULL);
   }
-  /* TODO: End measure time */
+  
+  /* End measure time */
+  clock_gettime(0, &etime);
 
   free(intermediary);
 
@@ -125,8 +129,20 @@ int main (int argc, char ** argv) {
   write_result(argv, xsize, ysize, colmax, image);
   free(image);
 
+  printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) +
+	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ;
+
   /* Exit */
   return(0);
+}
+
+int clock_gettime(int clk_id, struct timespec* t) {
+    struct timeval now;
+    int rv = gettimeofday(&now, NULL);
+    if (rv) return rv;
+    t->tv_sec  = now.tv_sec;
+    t->tv_nsec = now.tv_usec * 1000;
+    return 0;
 }
 
 int get_ystart(int ysize, int rank, int world_size){
