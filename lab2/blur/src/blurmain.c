@@ -70,7 +70,6 @@ int main (int argc, char ** argv) {
   /* Check arguments, read file and allocate memory. */
   int radius;
   int n_workers;
-  struct timespec stime, etime;
   check_args(argc, argv, &radius, &n_workers);
 
   int xsize, ysize, colmax;
@@ -101,6 +100,7 @@ int main (int argc, char ** argv) {
   }
 
   /* Start measure time*/
+  struct timespec stime;
   clock_gettime(0, &stime);
   
   for(i = 0; i < n_workers; i++){
@@ -120,6 +120,7 @@ int main (int argc, char ** argv) {
   }
   
   /* End measure time */
+  struct timespec etime;
   clock_gettime(0, &etime);
 
   free(intermediary);
