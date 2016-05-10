@@ -5,21 +5,18 @@
 #include <math.h>
 
 #define N 10
-#define MAX_ITER 1000
+#define MAX_ITER 88
 
 void print_T(double T[][N+1]) {
   for(int y = 0; y < N+1; y++) {
+    printf("  ");
     for(int x = 0; x < N+1; x++) {
-      printf("%f ", T[y][x]);
+      printf("%f  ", T[y][x]);
     }
     printf("\n");
   }
 }
 
-
-
-/* ska det vara n+1 eller n?
-   är fortran 1-indexerat? */
 int main() {
   double tol = pow(10, -3);
   double T[N+1][N+1];
@@ -28,8 +25,6 @@ int main() {
   struct timespec stime, etime;
   int x,y;
 
-  /* Jag fattar inte riktigt vad som händer
-     i fortran här, varför har dom n+1 t.ex.? */
   for(y = 0; y < N+1; y++) {
     for(x = 0; x < N+1; x++) {
       if(y == N) {
@@ -58,7 +53,7 @@ int main() {
 
       int j;
       for(j = 1; j < N; j++){
-	T[i][j] = (tmp1[j] + T[i][j-1] + T[i][j+1] + T[i+1][j]) / 4.0;
+	T[i][j] = (tmp1[j] + tmp2[j-1] + tmp2[j+1] + T[i+1][j]) / 4.0;
       }
       
       /* TODO: Fix calc error */
@@ -70,7 +65,7 @@ int main() {
       if(error < tol) break;
 
 
-      memcpy(tmp2, tmp1, N*sizeof(double));
+      memcpy(tmp1, tmp2, N*sizeof(double));
     }
   }
 
