@@ -4,8 +4,25 @@
 #include <time.h>
 #include <math.h>
 
-#define N 10
-#define MAX_ITER 1000
+#ifdef __MACH__
+#include <sys/time.h>
+
+#define CLOCK_REALTIME 1234
+
+int clock_gettime(int clk_id, struct timespec* t) {
+    struct timeval now;
+    int rv = gettimeofday(&now, NULL);
+    if (rv) return rv;
+    t->tv_sec  = now.tv_sec;
+    t->tv_nsec = now.tv_usec * 1000;
+    return 0;
+}
+
+#endif /* __MACH__ */
+
+
+#define N 1000
+#define MAX_ITER 10
 
 void print_T(double T[][N+2]) {
   for(int y = 0; y < N+2; y++) {
@@ -47,6 +64,9 @@ int main() {
   double tol = pow(10, -3);
   double tmp1[N+2],tmp2[N+2];
 
+  struct timespec start;
+  clock_gettime(CLOCK_REALTIME, &start);
+
   int k;
   for(k = 1; k <= MAX_ITER; k++) {
     memcpy(tmp1, T[0], (N+2)*sizeof(double));
@@ -64,7 +84,10 @@ int main() {
     }
   }
 
-  printf("Number of Iterations: %d\n", k);
+  struct timespec end;
+  clock_gettime(CLOCK_REALTIME, &end);
+
+  printf("Time: %f Number of Iterations: %d\n", (float)(end.tv_sec - start.tv_sec), k);
   printf("The temperature of element T(5,5): %f\n", T[5][5]);
 
   /* print_T(T); */
