@@ -5,7 +5,7 @@
 #include <math.h>
 
 #define N 10
-#define MAX_ITER 88
+#define MAX_ITER 60
 
 void print_T(double T[][N+1]) {
   for(int y = 0; y < N+1; y++) {
@@ -39,14 +39,14 @@ int main() {
 
   print_T(T);
   printf("\n");
+  
   /* /\* start time. *\/ */
   /* clock_gettime(0, &stime); */
 
   int k;
-  for(k = 1; k < MAX_ITER; k++) {
+  for(k = 0; k < MAX_ITER; k++) {
     memcpy(tmp1, T[0], N*sizeof(double));
     error = 0;
-
     int i;
     for(i = 1; i < N; i++) {
       memcpy(tmp2, T[i], N*sizeof(double));
@@ -71,6 +71,7 @@ int main() {
 
   print_T(T);
   printf("Number of Iterations: %d\n", k);
+  printf("The temperature of element T(5,5): %Lf\n", T[5][5]);
   
   /* /\* end time.  *\/ */
   /* clock_gettime(0, &etime); */

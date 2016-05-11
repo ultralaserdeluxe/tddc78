@@ -5,7 +5,7 @@ program laplsolv
 ! Written by Fredrik Berntsson (frber@math.liu.se) March 2003
 ! Modified by Berkant Savas (besav@math.liu.se) April 2006
 !-----------------------------------------------------------------------
-  integer, parameter                  :: n=10, maxiter=1000
+  integer, parameter                  :: n=9, maxiter=60
   double precision,parameter          :: tol=1.0E-3
   double precision,dimension(0:n+1,0:n+1) :: T
   double precision,dimension(n)       :: tmp1,tmp2
@@ -44,8 +44,8 @@ program laplsolv
   
   call cpu_time(t1)
 
-  write(unit=*,fmt=*) 'Time:',t1-t0,'Number of Iterations:',k
-  write(unit=*,fmt=*) 'Temperature of element T(1,1)  =',T(1,1)
+  write(unit=*,fmt=*) 'Time:',t1-t0,'Number of Iterations:', k-1
+  write(unit=*,fmt=*) 'Temperature of element T(5,5)  =',T(5,5)
 
   ! Uncomment the next part if you want to write the whole solution
   ! to a file. Useful for plotting. 
