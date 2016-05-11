@@ -5,12 +5,12 @@
 #include <math.h>
 
 #define N 10
-#define MAX_ITER 88
+#define MAX_ITER 1000
 
-void print_T(double T[][N+1]) {
-  for(int y = 0; y < N+1; y++) {
+void print_T(double T[][N+2]) {
+  for(int y = 0; y < N+2; y++) {
     printf("  ");
-    for(int x = 0; x < N+1; x++) {
+    for(int x = 0; x < N+2; x++) {
       printf("%f  ", T[y][x]);
     }
     printf("\n");
@@ -18,18 +18,13 @@ void print_T(double T[][N+1]) {
 }
 
 int main() {
-  double tol = pow(10, -3);
-  double T[N+1][N+1];
-  double tmp1[N],tmp2[N];
-  double error;
-  struct timespec stime, etime;
-  int x,y;
+  double T[N+2][N+2];
 
-  for(y = 0; y < N+1; y++) {
-    for(x = 0; x < N+1; x++) {
-      if(y == N) {
+  for(int y = 0; y < N+2; y++) {
+    for(int x = 0; x < N+2; x++) {
+      if(y == N+1) {
 	T[y][x] = 2;
-      } else if(x == 0 || x == N) {
+      } else if(x == 0 || x == N+1) {
 	T[y][x] = 1;
       } else {
 	T[y][x] = 0;
@@ -37,47 +32,38 @@ int main() {
     }
   }
 
-  print_T(T);
-  printf("\n");
-  /* /\* start time. *\/ */
-  /* clock_gettime(0, &stime); */
+  double tol = pow(10, -3);
+  double tmp1[N+2],tmp2[N+2];
 
   int k;
-  for(k = 1; k < MAX_ITER; k++) {
-    memcpy(tmp1, T[0], N*sizeof(double));
-    error = 0;
+  for(k = 1; k <= MAX_ITER; k++) {
+    memcpy(tmp1, T[0], (N+2)*sizeof(double));
+    double error = 0.0;
 
-    int i;
-    for(i = 1; i < N; i++) {
-      memcpy(tmp2, T[i], N*sizeof(double));
-
-      int j;
-      for(j = 1; j < N; j++){
-	T[i][j] = (tmp1[j] + tmp2[j-1] + tmp2[j+1] + T[i+1][j]) / 4.0;
+    for(int y = 1; y <= N; y++) {
+      memcpy(tmp2, T[y], (N+2)*sizeof(double));
+      
+      for(int x = 1; x <= N; x++){
+	T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x]) / 4.0;
       }
       
-      /* TODO: Fix calc error */
-      int l;
-      for(l = 0; l < N; l++){
-	float new_error = fabs(tmp2[l] - T[i][l]);
-	error = new_error > error ? new_error : error;
+      double max_error = 0;
+      for(int x = 1; x <= N; x++){
+	double new_error = fabs(tmp2[x] - T[y][x]);
+	max_error = new_error > max_error ? new_error : max_error;
       }
-      if(error < tol) break;
+      error = max_error > error ? max_error : error;
 
+      memcpy(tmp1, tmp2, (N+2)*sizeof(double));
+    }
 
-      memcpy(tmp1, tmp2, N*sizeof(double));
+    if(error < tol) {
+      break;
     }
   }
 
   print_T(T);
   printf("Number of Iterations: %d\n", k);
-  
-  /* /\* end time.  *\/ */
-  /* clock_gettime(0, &etime); */
-
-  /* /\* print time. *\/ */
-  /* printf("Filtering took: %g secs\n", (etime.tv_sec  - stime.tv_sec) + */
-  /* 	 1e-9*(etime.tv_nsec  - stime.tv_nsec)) ; */
 
   return 0;
 }
