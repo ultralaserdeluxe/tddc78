@@ -17,9 +17,7 @@ void print_T(double T[][N+2]) {
   }
 }
 
-int main() {
-  double T[N+2][N+2];
-
+void init_T(double T[][N+2]){
   for(int y = 0; y < N+2; y++) {
     for(int x = 0; x < N+2; x++) {
       if(y == N+1) {
@@ -31,6 +29,20 @@ int main() {
       }
     }
   }
+}
+
+double calc_error(double tmp2[], double T[][N+2], int y, double old_error){
+  double max_error = 0;
+  for(int x = 1; x <= N; x++){
+    double new_error = fabs(tmp2[x] - T[y][x]);
+    max_error = new_error > max_error ? new_error : max_error;
+  }
+  return max_error > old_error ? max_error : old_error;
+}
+
+int main() {
+  double T[N+2][N+2];
+  init_T(T);
 
   double tol = pow(10, -3);
   double tmp1[N+2],tmp2[N+2];
@@ -42,18 +54,8 @@ int main() {
 
     for(int y = 1; y <= N; y++) {
       memcpy(tmp2, T[y], (N+2)*sizeof(double));
-      
-      for(int x = 1; x <= N; x++){
-	T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x]) / 4.0;
-      }
-      
-      double max_error = 0;
-      for(int x = 1; x <= N; x++){
-	double new_error = fabs(tmp2[x] - T[y][x]);
-	max_error = new_error > max_error ? new_error : max_error;
-      }
-      error = max_error > error ? max_error : error;
-
+      for(int x = 1; x <= N; x++) T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
+      error = calc_error(tmp2, T, y, error);
       memcpy(tmp1, tmp2, (N+2)*sizeof(double));
     }
 
@@ -65,7 +67,7 @@ int main() {
   printf("Number of Iterations: %d\n", k);
   printf("The temperature of element T(5,5): %f\n", T[5][5]);
 
-  print_T(T);
+  /* print_T(T); */
 
   return 0;
 }
