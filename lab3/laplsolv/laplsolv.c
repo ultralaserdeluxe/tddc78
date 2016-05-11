@@ -62,8 +62,10 @@ int main() {
     }
   }
 
-  print_T(T);
   printf("Number of Iterations: %d\n", k);
+  printf("The temperature of element T(5,5): %f\n", T[5][5]);
+
+  print_T(T);
 
   return 0;
 }
