@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 
 #ifdef __MACH__
 #include <sys/time.h>
@@ -20,9 +21,10 @@ int clock_gettime(int clk_id, struct timespec* t) {
 
 #endif /* __MACH__ */
 
+#define MAX(A,B) (A > B ? A : B)
 
-#define N 1000
-#define MAX_ITER 10
+#define N 10
+#define MAX_ITER 1000
 
 void print_T(double T[][N+2]) {
   for(int y = 0; y < N+2; y++) {
@@ -52,35 +54,55 @@ double calc_error(double tmp2[], double T[][N+2], int y, double old_error){
   double max_error = 0;
   for(int x = 1; x <= N; x++){
     double new_error = fabs(tmp2[x] - T[y][x]);
-    max_error = new_error > max_error ? new_error : max_error;
+    max_error = MAX(new_error, max_error);
   }
-  return max_error > old_error ? max_error : old_error;
+  return MAX(max_error, old_error);
 }
 
 int main() {
   double T[N+2][N+2];
   init_T(T);
-
   double tol = pow(10, -3);
-  double tmp1[N+2],tmp2[N+2];
+  double global_error = 0.0;
 
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);
 
-  int k;
-  for(k = 1; k <= MAX_ITER; k++) {
-    memcpy(tmp1, T[0], (N+2)*sizeof(double));
-    double error = 0.0;
 
-    for(int y = 1; y <= N; y++) {
-      memcpy(tmp2, T[y], (N+2)*sizeof(double));
-      for(int x = 1; x <= N; x++) T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
-      error = calc_error(tmp2, T, y, error);
-      memcpy(tmp1, tmp2, (N+2)*sizeof(double));
-    }
+  int k=0;
+#pragma omp parallel private(k) num_threads(2)
+  {
+    double tmp1[N+2], tmp2[N+2];
 
-    if(error < tol) {
-      break;
+    for(k = 1; k <= MAX_ITER; k++) {
+      memcpy(tmp1, T[0], (N+2)*sizeof(double));
+      double local_error = 0.0;
+
+#pragma omp for
+      for(int y = 1; y <= N; y++) {
+	memcpy(tmp2, T[y], (N+2)*sizeof(double));
+      
+	for(int x = 1; x <= N; x++){
+	  T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
+	}
+
+	local_error = calc_error(tmp2, T, y, local_error);
+
+#pragma omp critical
+	{
+	  global_error = MAX(local_error, global_error);
+	}
+
+	memcpy(tmp1, tmp2, (N+2)*sizeof(double));
+      }
+
+#pragma omp barrier
+#pragma omp single
+      {
+	if(global_error < tol){
+	  k = MAX_ITER;
+	}
+      }
     }
   }
 
