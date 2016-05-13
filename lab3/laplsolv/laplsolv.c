@@ -23,40 +23,46 @@ int clock_gettime(int clk_id, struct timespec* t) {
 
 #define MAX(A,B) (A > B ? A : B)
 
-#define N 100
+#define N 10
 #define MAX_ITER 1000
 
-void print_T(double T[][N+2]) {
-  for(int y = 0; y < N+2; y++) {
-    printf("  ");
-    for(int x = 0; x < N+2; x++) {
-      printf("%f  ", T[y][x]);
-    }
-    printf("\n");
-  }
-}
+/* void print_T(double T[][N+2]) { */
+/*   for(int y = 0; y < N+2; y++) { */
+/*     printf("  "); */
+/*     for(int x = 0; x < N+2; x++) { */
+/*       printf("%f  ", T[y][x]); */
+/*     } */
+/*     printf("\n"); */
+/*   } */
+/* } */
 
-void init_T(double T[][N+2]){
+void init_T(double* T){
   for(int y = 0; y < N+2; y++) {
     for(int x = 0; x < N+2; x++) {
       if(y == N+1) {
-	T[y][x] = 2;
+	*(T + (N+2)*y + x) = 2;
+	/* T[y][x] = 2; */
       } else if(x == 0 || x == N+1) {
-	T[y][x] = 1;
+	*(T + (N+2)*y + x) = 1;
+	/* T[y][x] = 1; */
       } else {
-	T[y][x] = 0;
+	*(T + (N+2)*y + x) = 0;
+	/* T[y][x] = 0; */
       }
     }
   }
 }
 
 int main() {
-  double T[N+2][N+2];
+  /* double T[N+2][N+2]; */
+  double* T = (double*)malloc((N+2)*(N+2)*sizeof(double));
   init_T(T);
   double tol = pow(10, -3);
   double error;
   int stop = 0;
-  double tmp1[N+2], tmp2[N+2];
+  /* double tmp1[N+2], tmp2[N+2]; */
+  double* tmp1 = (double*)malloc((N+2)*sizeof(double));
+  double* tmp2 = (double*)malloc((N+2)*sizeof(double));
   int iterations = 0;
   double max_error = 0;
   double new_error = 0;
@@ -70,19 +76,19 @@ int main() {
     while(!stop){
 #     pragma omp single
       {
-	memcpy(tmp1, T[0], (N+2)*sizeof(double));
+	memcpy(tmp1, T, (N+2)*sizeof(double));
       }
 
       for(int y = 1; y <= N; y++) {
 #       pragma omp single
 	{
-	  memcpy(tmp2, T[y], (N+2)*sizeof(double));
+	  memcpy(tmp2, T + (N+2)*y, (N+2)*sizeof(double));
 	}
 
-#       pragma omp for 
+#       pragma omp for schedule(static, 1)
 	for(int x = 1; x <= N; x++){
-	  T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
-	  new_error = fabs(tmp2[x] - T[y][x]);
+	  *(T + (N+2)*y + x) = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + *(T + (N+2)*(y+1) + x))/4.0;
+	  new_error = fabs(tmp2[x] - *(T + (N+2)*y + x));
 	  max_error = MAX(new_error, max_error);
 	}
 
@@ -93,10 +99,7 @@ int main() {
 	}
 #       pragma omp single
 	{
-	  double* tmp = tmp1;
-	  tmp1 = tmp2;
-	  tmp2 = tmp1;
-	  /* memcpy(tmp1, tmp2, (N+2)*sizeof(double)); */
+	  memcpy(tmp1, tmp2, (N+2)*sizeof(double));
 	}
       /* printf("thread: %d iterations: %d error: %f\n", omp_get_thread_num(), iterations, error); */
       }
@@ -120,9 +123,13 @@ int main() {
   clock_gettime(CLOCK_REALTIME, &end);
 
   printf("Time: %f\n", (float)(end.tv_sec - start.tv_sec));
-  printf("The temperature of element T(5,5): %f\n", T[5][5]);
+  printf("The temperature of element T(5,5): %f\n", *(T + (N+2)*5 + 5));
 
   /* print_T(T); */
+
+  free(tmp1);
+  free(tmp2);
+  free(T);
 
   return 0;
 }
