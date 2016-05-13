@@ -93,7 +93,10 @@ int main() {
 	}
 #       pragma omp single
 	{
-	  memcpy(tmp1, tmp2, (N+2)*sizeof(double));
+	  double* tmp = tmp1;
+	  tmp1 = tmp2;
+	  tmp2 = tmp1;
+	  /* memcpy(tmp1, tmp2, (N+2)*sizeof(double)); */
 	}
       /* printf("thread: %d iterations: %d error: %f\n", omp_get_thread_num(), iterations, error); */
       }
