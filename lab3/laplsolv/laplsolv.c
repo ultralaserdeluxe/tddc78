@@ -71,11 +71,13 @@ int main() {
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);
 
-# pragma omp parallel firstprivate(iterations, tol) shared(tmp1, tmp2, stop, error, T) num_threads(2)
+# pragma omp parallel firstprivate(iterations)
   {
     while(!stop){
 #     pragma omp single
-      memcpy(tmp1, T[0], (N+2)*sizeof(double));
+      {
+	memcpy(tmp1, T[0], (N+2)*sizeof(double));
+      }
 #     pragma omp barrier
 
       for(int y = 1; y <= N; y++) {
@@ -89,16 +91,19 @@ int main() {
 	}
 	
 #       pragma omp single
-	error = calc_error(tmp2, T, y, error);
-	memcpy(tmp1, tmp2, (N+2)*sizeof(double));
+	{
+	  error = calc_error(tmp2, T, y, error);
+	  memcpy(tmp1, tmp2, (N+2)*sizeof(double));
+	}
 #       pragma omp barrier
       }
 
-#     pragma omp barrier
+      iterations++;
       printf("thread: %d iterations: %d error: %f\n", omp_get_thread_num(), iterations, error);
+
 #     pragma omp single
       {
-	if(error < tol){
+	if(error < tol || iterations >= MAX_ITER){
 	  stop = 1;
 #         pragma omp flush(stop)
 	}else{
@@ -106,8 +111,6 @@ int main() {
 #         pragma omp flush(error)
 	}
       }
-#     pragma omp barrier
-      iterations++;
     }
     printf("EXIT thread: %d iterations: %d\n", omp_get_thread_num(), iterations);
   }
