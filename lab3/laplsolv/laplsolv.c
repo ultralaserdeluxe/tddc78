@@ -23,7 +23,7 @@ int clock_gettime(int clk_id, struct timespec* t) {
 
 #define MAX(A,B) (A > B ? A : B)
 
-#define N 10
+#define N 100
 #define MAX_ITER 1000
 
 void print_T(double T[][N+2]) {
@@ -50,15 +50,6 @@ void init_T(double T[][N+2]){
   }
 }
 
-double calc_error(double tmp2[], double T[][N+2], int y, double old_error){
-  double max_error = 0;
-  for(int x = 1; x <= N; x++){
-    double new_error = fabs(tmp2[x] - T[y][x]);
-    max_error = MAX(new_error, max_error);
-  }
-  return MAX(max_error, old_error);
-}
-
 int main() {
   double T[N+2][N+2];
   init_T(T);
@@ -67,48 +58,55 @@ int main() {
   int stop = 0;
   double tmp1[N+2], tmp2[N+2];
   int iterations = 0;
+  double max_error = 0;
+  double new_error = 0;
+
 
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);
 
-# pragma omp parallel firstprivate(iterations)
+# pragma omp parallel firstprivate(iterations, max_error, new_error) shared(tmp1, tmp2, T, error, tol, stop) num_threads(4)
   {
     while(!stop){
 #     pragma omp single
       {
 	memcpy(tmp1, T[0], (N+2)*sizeof(double));
       }
-#     pragma omp barrier
 
       for(int y = 1; y <= N; y++) {
 #       pragma omp single
-	memcpy(tmp2, T[y], (N+2)*sizeof(double));
-#       pragma omp barrier
+	{
+	  memcpy(tmp2, T[y], (N+2)*sizeof(double));
+	}
 
-#       pragma omp for      
+#       pragma omp for 
 	for(int x = 1; x <= N; x++){
 	  T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
+	  new_error = fabs(tmp2[x] - T[y][x]);
+	  max_error = MAX(new_error, max_error);
 	}
-	
+
+#       pragma omp critical
+	{
+	  error = MAX(max_error, error);
+	  max_error = 0.0;
+	}
 #       pragma omp single
 	{
-	  error = calc_error(tmp2, T, y, error);
 	  memcpy(tmp1, tmp2, (N+2)*sizeof(double));
 	}
-#       pragma omp barrier
+      /* printf("thread: %d iterations: %d error: %f\n", omp_get_thread_num(), iterations, error); */
       }
 
       iterations++;
-      printf("thread: %d iterations: %d error: %f\n", omp_get_thread_num(), iterations, error);
+
 
 #     pragma omp single
       {
 	if(error < tol || iterations >= MAX_ITER){
 	  stop = 1;
-#         pragma omp flush(stop)
 	}else{
 	  error = 0.0; 
-#         pragma omp flush(error)
 	}
       }
     }
