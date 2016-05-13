@@ -63,22 +63,24 @@ int main() {
   double T[N+2][N+2];
   init_T(T);
   double tol = pow(10, -3);
-  double global_error = 0.0;
+  double global_error;
+  int stop = 0;
+  double tmp1[N+2], tmp2[N+2], error[N+2];
+  int local_iterations = 0;
+  double local_error = 0.0;
 
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);
 
-
-  int k=0;
-#pragma omp parallel private(k) num_threads(2)
+# pragma omp parallel firstprivate(tmp1, tmp2, error, local_iterations, local_error, tol) shared(stop, global_error, T)  num_threads(2)
   {
-    double tmp1[N+2], tmp2[N+2];
-
-    for(k = 1; k <= MAX_ITER; k++) {
+    
+    while(!stop){
       memcpy(tmp1, T[0], (N+2)*sizeof(double));
-      double local_error = 0.0;
 
-#pragma omp for
+      local_error = 0.0;
+
+#     pragma omp for
       for(int y = 1; y <= N; y++) {
 	memcpy(tmp2, T[y], (N+2)*sizeof(double));
       
@@ -86,30 +88,49 @@ int main() {
 	  T[y][x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + T[y+1][x])/4.0;
 	}
 
-	local_error = calc_error(tmp2, T, y, local_error);
+	/* local_error = calc_error(tmp2, T, y, local_error); */
 
-#pragma omp critical
-	{
-	  global_error = MAX(local_error, global_error);
+	for(int x = 1; x <= N; x++){
+	  error[x] = fabs(tmp2[x] - T[y][x]);
+	}
+
+	for(int x = 1; x <= N; x++){
+	  local_error = MAX(error[x], local_error);
 	}
 
 	memcpy(tmp1, tmp2, (N+2)*sizeof(double));
       }
 
-#pragma omp barrier
-#pragma omp single
+#     pragma omp critical
+      {
+	global_error = MAX(local_error, global_error);
+      }
+
+
+#     pragma omp single
       {
 	if(global_error < tol){
-	  k = MAX_ITER;
+	  stop = 1;
+#         pragma omp flush(stop)
+	}else{
+	  global_error = 0.0; 
+#         pragma omp flush(global_error)      
 	}
       }
+#     pragma omp barrier
+
+      local_iterations++;
+      if(local_error > global_error) printf("SHITBREAK\n");
+
+      printf("thread: %d local_iterations: %d global: %f local: %f\n", omp_get_thread_num(), local_iterations, global_error, local_error);
     }
+    printf("EXIT thread: %d local_iterations: %d\n", omp_get_thread_num(), local_iterations);
   }
 
   struct timespec end;
   clock_gettime(CLOCK_REALTIME, &end);
 
-  printf("Time: %f Number of Iterations: %d\n", (float)(end.tv_sec - start.tv_sec), k);
+  printf("Time: %f\n", (float)(end.tv_sec - start.tv_sec));
   printf("The temperature of element T(5,5): %f\n", T[5][5]);
 
   /* print_T(T); */
