@@ -66,7 +66,7 @@ int main() {
   struct timespec start;
   clock_gettime(CLOCK_REALTIME, &start);
 
-# pragma omp parallel firstprivate(iterations, max_error, new_error) shared(tmp1, tmp2, T, error, tol, stop) num_threads(4)
+# pragma omp parallel firstprivate(iterations, max_error, new_error) shared(tmp1, tmp2, T, error, tol, stop) num_threads(1)
   {
     while(!stop){
 #     pragma omp single
