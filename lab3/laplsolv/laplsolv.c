@@ -26,41 +26,36 @@ int clock_gettime(int clk_id, struct timespec* t) {
 #define N 10
 #define MAX_ITER 1000
 
-/* void print_T(double T[][N+2]) { */
-/*   for(int y = 0; y < N+2; y++) { */
-/*     printf("  "); */
-/*     for(int x = 0; x < N+2; x++) { */
-/*       printf("%f  ", T[y][x]); */
-/*     } */
-/*     printf("\n"); */
-/*   } */
-/* } */
+void print_T(double* T) {
+  for(int y = 0; y < N+2; y++) {
+    printf("  ");
+    for(int x = 0; x < N+2; x++) {
+      printf("%f  ", *(T + (N+2)*y + x));
+    }
+    printf("\n");
+  }
+}
 
 void init_T(double* T){
   for(int y = 0; y < N+2; y++) {
     for(int x = 0; x < N+2; x++) {
       if(y == N+1) {
 	*(T + (N+2)*y + x) = 2;
-	/* T[y][x] = 2; */
       } else if(x == 0 || x == N+1) {
 	*(T + (N+2)*y + x) = 1;
-	/* T[y][x] = 1; */
       } else {
 	*(T + (N+2)*y + x) = 0;
-	/* T[y][x] = 0; */
       }
     }
   }
 }
 
 int main() {
-  /* double T[N+2][N+2]; */
   double* T = (double*)malloc((N+2)*(N+2)*sizeof(double));
   init_T(T);
   double tol = pow(10, -3);
   double error;
   int stop = 0;
-  /* double tmp1[N+2], tmp2[N+2]; */
   double* tmp1 = (double*)malloc((N+2)*sizeof(double));
   double* tmp2 = (double*)malloc((N+2)*sizeof(double));
   int iterations = 0;
@@ -125,7 +120,7 @@ int main() {
   printf("Time: %f\n", (float)(end.tv_sec - start.tv_sec));
   printf("The temperature of element T(5,5): %f\n", *(T + (N+2)*5 + 5));
 
-  /* print_T(T); */
+  print_T(T);
 
   free(tmp1);
   free(tmp2);
