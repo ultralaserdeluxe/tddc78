@@ -48,10 +48,10 @@ int main() {
   double* T = (double*)malloc((N+2)*(N+2)*sizeof(double));
   init_T(T);
   double tol = pow(10, -3);
-  double global_error = 100000;
+  double global_error;
   double starttime = omp_get_wtime();
 
-# pragma omp parallel num_threads(7)
+# pragma omp parallel
   {
     double* tmp1 = (double*)malloc((N+2)*sizeof(double));
     double* tmp2 = (double*)malloc((N+2)*sizeof(double));
@@ -63,7 +63,7 @@ int main() {
     int iterations = 0;
     double local_error = 0;
 
-    while(!(global_error < tol || iterations >= MAX_ITER)){
+    do{
 #     pragma omp barrier
       global_error = 0.0;
       local_error = 0.0;
@@ -77,7 +77,7 @@ int main() {
 
 	for(int x = 1; x <= N; x++){
 	  double below;
-	  if(y == yend)below = tmp3[x];
+	  if(y == yend) below = tmp3[x];
 	  else below = T[(N+2)*(y+1) + x];
 
 	  T[(N+2)*y + x] = (tmp1[x] + tmp2[x-1] + tmp2[x+1] + below)/4.0;
@@ -96,7 +96,8 @@ int main() {
 	global_error = MAX(local_error, global_error);
       }
 #     pragma omp barrier
-    }
+    }while(global_error >= tol && iterations < MAX_ITER);
+    
     printf("EXIT thread: %d iterations: %d\n", omp_get_thread_num(), iterations);
 
     free(tmp1);
