@@ -23,7 +23,7 @@ int clock_gettime(int clk_id, struct timespec* t) {
 
 #define MAX(A,B) (A > B ? A : B)
 
-#define N 10
+#define N 1000
 #define MAX_ITER 1000
 
 /* void print_T(double T[][N+2]) { */
@@ -67,9 +67,7 @@ int main() {
   double max_error = 0;
   double new_error = 0;
 
-
-  struct timespec start;
-  clock_gettime(CLOCK_REALTIME, &start);
+  double starttime = omp_get_wtime();
 
 # pragma omp parallel firstprivate(iterations, max_error, new_error) shared(tmp1, tmp2, T, error, tol, stop) num_threads(4)
   {
@@ -119,10 +117,8 @@ int main() {
     printf("EXIT thread: %d iterations: %d\n", omp_get_thread_num(), iterations);
   }
 
-  struct timespec end;
-  clock_gettime(CLOCK_REALTIME, &end);
-
-  printf("Time: %f\n", (float)(end.tv_sec - start.tv_sec));
+  double endtime = omp_get_wtime();
+  printf("Time: %f\n", endtime-starttime);
   printf("The temperature of element T(5,5): %f\n", *(T + (N+2)*5 + 5));
 
   /* print_T(T); */
