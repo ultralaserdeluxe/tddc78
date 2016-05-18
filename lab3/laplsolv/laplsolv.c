@@ -7,7 +7,7 @@
 
 #define MAX(A,B) (A > B ? A : B)
 
-#define N 1000
+#define N 2000
 #define MAX_ITER 1000
 
 void print_T(double* T) {
