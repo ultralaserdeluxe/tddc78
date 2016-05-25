@@ -64,9 +64,7 @@ Most of the time we write our code in emacs, so we never use built-in debuggers 
 
 After using it for a couple of hours, We found the option how to debug while in the code, and tried this out for a while (this can be seen in figure 1), but as we already had completed all the other labs before starting this one we didn't have any code to debug that didn't already work. This made it kind of useless.
 
-Maybe it would have been better if had been introduce in the lab series earlier.
-
-Even though we didn't like the program, we understand that it could be useful for larger projects.
+Maybe it would have been better if had been introduce in the lab series earlier. And even though we didn't like the program, we understand that it could be useful for larger projects.
 
 \begin{figure}[H]
   \centering
@@ -77,6 +75,18 @@ Even though we didn't like the program, we understand that it could be useful fo
 
 
 \section{ITAC}
+At first we thought it was less hard to compile ITAC with icc, but then we had forgotten to include the VT.h functions, so ITAC only showed very little information as can be seen in figure \ref{fig:itac}. When doing this we got the compilation to work at first, but then it stopped working all os a sudden and we never got it to work again unfortunately. Our opinion of this program is the same as above, even though we understand it could be good for optimizations we didn't need to use it.
+
+Our conclusion is that these kind of tools is useless.
+
+%% We had less problem to compile with this program and to run the ITAC application, but when we were trying to see useful information we didn't manage at all, it didn't seem to matter what settings we used it only looked as in figure \ref{fig:itac}
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.27}{\includegraphics{img/itac.png}}
+  \caption{Intel ITAC.}
+  \label{fig:itac}
+\end{figure}
 
 
 \end{document}
