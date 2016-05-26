@@ -35,7 +35,7 @@ int main (int argc, char ** argv) {
   create_mpi_pixel_type();
   
   /* Check arguments, read file and allocate memory. */
-  pixel* src;
+  pixel* src = NULL;
   int xsize, ysize, colmax, radius;
   if(rank == ROOT) {
     src = malloc(sizeof(pixel) * MAX_PIXELS);
@@ -46,7 +46,7 @@ int main (int argc, char ** argv) {
     
     check_args(argc, argv, &radius);
     read_file(argv, &xsize, &ysize, &colmax, src);
-    printf("Has read the image.\n");
+    printf("Has read the image.\n xsize=%d ysize=%d\n", xsize, ysize);
   } 
 
 
@@ -64,16 +64,10 @@ int main (int argc, char ** argv) {
   int offsets_rad[world_size];
   calc_stuff(ysize, xsize, world_size, radius, counts, offsets, ystarts_rad, yends_rad, offsets_rad, counts_rad);
 
-  /* Allocate more memory. */
-  pixel* recvbuff;
-  if(rank != ROOT) {
-    recvbuff = malloc(sizeof(pixel) * counts_rad[rank]);
-    if(recvbuff == NULL) {
-      printf("Process %d could not allocate memory, exiting.\n", rank);
-      exit(1);
-    }
-  }
-
+  /* Allocate memory and distribute image. */
+  pixel* data = malloc(sizeof(pixel) * counts_rad[rank]);
+  MPI_Scatterv(src, counts_rad, offsets_rad, mpi_pixel_type, data, counts_rad[rank],
+	       mpi_pixel_type, ROOT, MPI_COMM_WORLD);
 
   
   /* Gauss */
@@ -84,31 +78,21 @@ int main (int argc, char ** argv) {
   MPI_Barrier(MPI_COMM_WORLD);
   double start_time = MPI_Wtime();
 
-  /* Send parts to other tasks, and filter. */
-  if(rank == ROOT) {
-    for(int i = 1; i < world_size; i++) MPI_Send(src + offsets_rad[i], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
-    printf("Overriding protocols.\n");
-    blurfilter(xsize, yends_rad[rank],  src, radius, w);
-  } else {
-    MPI_Recv(recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
-    blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
-  }
+  /* Filter! */
+  blurfilter(xsize, yends_rad[rank]-ystarts_rad[rank], data, radius, w);
+
+  /* Send stuff back to main task. */
+  int offset = 0;
+  if(rank != ROOT) offset = radius * xsize;
+  MPI_Gatherv(data + offset, counts[rank], mpi_pixel_type, src, counts, offsets,
+	      mpi_pixel_type, ROOT, MPI_COMM_WORLD);
 
   /* Wait for every task, before getting the time. */
   MPI_Barrier(MPI_COMM_WORLD);
   double end_time = MPI_Wtime();
   if(rank == ROOT) printf("Filtering took: %f secs\n", end_time - start_time);
-  
-  /* Send stuff back to main task. */
-  if(rank == ROOT) {
-    for(int i = 1; i < world_size; i++) {
-      MPI_Recv(src + offsets[i], counts[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD, &status);
-    }
-  } else {
-    MPI_Send(recvbuff + radius*xsize, counts[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD);
-    free(recvbuff);
-  }
-  
+
+  free(data);
   MPI_Finalize();
 
   /* Write result. */    
@@ -126,12 +110,12 @@ int main (int argc, char ** argv) {
 }
 
 int get_ystart_radius(int ysize, int rank, int world_size, int radius){
-  int ystart = (rank * ceil((double)ysize / world_size)) - radius;
-  return rank == ROOT  ? 0 : ystart;
+  int ystart = get_ystart(ysize, rank, world_size) - radius;
+  return ystart < 0  ? 0 : ystart;
 }
 
 int get_yend_radius(int ysize, int rank, int world_size, int radius){
-  int yend = ((rank + 1) * ceil((double)ysize / world_size)) + radius;
+  int yend = get_yend(ysize, rank, world_size) + radius;
   return yend > ysize ? ysize : yend;
 }
 
@@ -187,10 +171,13 @@ void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, i
     yend = get_yend(ysize, i, world_size);
     counts[i] = (yend - ystart) * xsize;
     offsets[i] = ystart * xsize;
+
     ystarts_rad[i] = get_ystart_radius(ysize, i, world_size, radius);
     yends_rad[i] = get_yend_radius(ysize, i, world_size, radius);
-    offsets_rad[i] = ystarts_rad[i] * xsize;
     counts_rad[i] = (yends_rad[i] - ystarts_rad[i]) * xsize;
+    offsets_rad[i] = ystarts_rad[i] * xsize;
+
+    printf("rank=%d ystart=%d yend=%d count=%d offset=%d ystart_rad=%d yend_rad=%d offset_rad=%d count_rad=%d\n", i, ystart, yend, counts[i], offsets[i], ystarts_rad[i], yends_rad[i], offsets_rad[i], counts_rad[i]);
   }    
 }
 

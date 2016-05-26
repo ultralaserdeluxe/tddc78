@@ -12,13 +12,7 @@
 
 pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
 {
-  register int off = xsize*yy + xx;
-
-#ifdef DBG
-  if(off >= MAX_PIXELS) {
-    fprintf(stderr, "\n Terribly wrong: %d %d %d\n",xx,yy,xsize);
-  }
-#endif
+  int off = xsize*yy + xx;
   return (image + off);
 }
 
@@ -27,7 +21,7 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
   
   int x,y,x2,y2, wi;
   double r,g,b,n, wc;
-  pixel* dst = malloc(sizeof(pixel) * MAX_PIXELS);
+  pixel* dst = malloc(sizeof(pixel) * xsize * ysize);
   
   
   for (y=0; y<ysize; y++) {
