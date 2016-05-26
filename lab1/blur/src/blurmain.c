@@ -51,9 +51,9 @@ int main (int argc, char ** argv) {
 
 
   /* Send size data to processes. */
-  MPI_Bcast((void*)&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
-  MPI_Bcast((void*)&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
-  MPI_Bcast((void*)&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&ysize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&radius, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
   
   /* Calculate some stuff. */
   int ystarts_rad[world_size];
@@ -86,11 +86,11 @@ int main (int argc, char ** argv) {
 
   /* Send parts to other tasks, and filter. */
   if(rank == ROOT) {
-    for(int i = 1; i < world_size; i++) MPI_Send((void*)&src[offsets_rad[i]], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
+    for(int i = 1; i < world_size; i++) MPI_Send(src + offsets_rad[i], counts_rad[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD);
     printf("Overriding protocols.\n");
     blurfilter(xsize, yends_rad[rank],  src, radius, w);
   } else {
-    MPI_Recv((void*)recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
+    MPI_Recv(recvbuff, counts_rad[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD, &status);
     blurfilter(xsize, yends_rad[rank], recvbuff, radius, w);
   }
 
@@ -102,10 +102,10 @@ int main (int argc, char ** argv) {
   /* Send stuff back to main task. */
   if(rank == ROOT) {
     for(int i = 1; i < world_size; i++) {
-      MPI_Recv((void*)&src[offsets[i]], counts[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD, &status);
+      MPI_Recv(src + offsets[i], counts[i], mpi_pixel_type, i, 0, MPI_COMM_WORLD, &status);
     }
   } else {
-    MPI_Send((void*)&recvbuff[radius*xsize], counts[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD);
+    MPI_Send(recvbuff + radius*xsize, counts[rank], mpi_pixel_type, ROOT, 0, MPI_COMM_WORLD);
     free(recvbuff);
   }
   
