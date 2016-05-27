@@ -1,1 +1,1 @@
-./a.out 16 ../../../examples/images/im1.ppm ~/Desktop/im1-thres.png
+./a.out 16 ../../../examples/images/im3.ppm im3-thres.png
