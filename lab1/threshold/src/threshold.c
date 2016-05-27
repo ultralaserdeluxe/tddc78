@@ -42,6 +42,7 @@ int main(int argc, char** argv)
   if (rank == ROOT){
     printf("Reading file.\n");
     image = read_file(argv, &xsize, &ysize, &colmax);
+    printf("xsize=%d ysize=%d\n", xsize, ysize);
   }
 
   MPI_Bcast(&xsize, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
@@ -210,10 +211,10 @@ void create_mpi_pixel_type(){
 }
 
 int get_ystart(int ysize, int rank, int world_size){
-  return rank * ceil(ysize / world_size);
+  return rank * ceil((double)ysize / world_size);
 }
 
 int get_yend(int ysize, int rank, int world_size){
-  int yend = (rank + 1) * ceil(ysize / world_size);
+  int yend = (rank + 1) * ceil((double)ysize / world_size);
   return ysize < yend ? ysize : yend;
 }
