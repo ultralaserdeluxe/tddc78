@@ -77,7 +77,9 @@ This section will describe how we used MPI to parallelize the execution of the p
 It might be worth mentioning that we use MPI\_Barrier in both filters just for the sake of timing the filters, so that the timing starts and stops when all tasks are done with the filter.
 
 \subsection{Blur filter}
-For this filter we define an MPI type called mpi\_pixel\_type which contains a pixel, this will make it easier for us to send the data as we can send whole pixels instead of sending the r, b and g doubles of the pixel one by one. We use MPI\_Send and MPI\_Recv to send parts of the image to the tasks. These parts will be overlapping regions depending on how big the radius are, the size of them will also depend on how many tasks we have.
+For this filter we define an MPI type called mpi\_pixel\_type which contains a pixel, this will make it easier for us to send the data as we can send whole pixels instead of sending the r, b and g doubles of the pixel one by one.
+
+We started by using MPI\_Send and MPI\_Recv to send parts of the image to the tasks. These parts were overlapping regions depending on how big the radius were, the size of them will also depend on how many tasks we have. This worked on our own laptops but unfortunately not on triolith for whatever reason we don't know. This made us instead use MPI\_Scatterv and MPI\_Gatherv as we had done for the threshold filter.
 
 To be able to do this we must first broadcast the size in x and y, along with the radius, we do this with MPI\_Broadcast.
 
