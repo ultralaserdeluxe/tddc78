@@ -95,10 +95,53 @@ When done the main thread, which have waited for the other threads, will save th
 \section{Execution times}
 In this section we will present the execution times of the filters.
 
+It is worth mentioning that the times for all graphs below are in seconds.
+
+The tests were performed on four images with sizes as can be seen in \ref{tab:table1}.
+
+\begin{table}[H]
+  \centering
+  \caption{The sizes for the images used in the tests.}
+  \begin{tabular}{|*{3}{p{30mm}|}}
+    \hline
+    \textbf{Image name} & \textbf{x pixels } & \textbf{y pixels} \\ \hline
+           {im1.ppm} & {676} & {763} \\ \hline
+           {im2.ppm} & {1024} & {1024} \\ \hline
+           {im3.ppm} & {1600} & {1200} \\ \hline
+           {im4.ppm} & {3000} & {3000} \\ \hline
+  \end{tabular}
+  \label{tab:table1}
+\end{table}
+
 \subsection{Blur filter}
+Our result show that if we increase the number of threads, we will get a decrease in time. But this relationship is not linear due to deminishing returns, since the problem is not perfectly parallell the serial section sections start to dominate the execution time.
+
+The results for image 1 and image 2 can the seen in figure \ref{fig:im3-blur} and figure \ref{fig:im4-blur} respectively. 
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/im3-blur.png}}
+  \caption{Result for the blur filter run on image 3.}
+  \label{fig:im3-blur}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/im4-blur.png}}
+  \caption{Result for the blur filter run on image 4.}
+  \label{fig:im4-blur}
+\end{figure}
 
 
 \subsection{Threshold filter}
+We obtained the same pattern of results for this filter as for the blur filter. Executions times for all images can be seen in figure \ref{fig:threshold}
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/threshold.png}}
+  \caption{Result for the threshold filter.}
+  \label{fig:threshold}
+\end{figure}
 
 
 \end{document}
