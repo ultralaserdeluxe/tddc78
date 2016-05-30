@@ -77,7 +77,9 @@ This section will describe how we used MPI to parallelize the execution of the p
 It might be worth mentioning that we use MPI\_Barrier in both filters just for the sake of timing the filters, so that the timing starts and stops when all tasks are done with the filter.
 
 \subsection{Blur filter}
-For this filter we define an MPI type called mpi\_pixel\_type which contains a pixel, this will make it easier for us to send the data as we can send whole pixels instead of sending the r, b and g doubles of the pixel one by one. We use MPI\_Send and MPI\_Recv to send parts of the image to the tasks. These parts will be overlapping regions depending on how big the radius are, the size of them will also depend on how many tasks we have.
+For this filter we define an MPI type called mpi\_pixel\_type which contains a pixel, this will make it easier for us to send the data as we can send whole pixels instead of sending the r, b and g doubles of the pixel one by one.
+
+We started by using MPI\_Send and MPI\_Recv to send parts of the image to the tasks. These parts were overlapping regions depending on how big the radius were, the size of them will also depend on how many tasks we have. This worked on our own laptops but unfortunately not on triolith for whatever reason we don't know. This made us instead use MPI\_Scatterv and MPI\_Gatherv as we had done for the threshold filter.
 
 To be able to do this we must first broadcast the size in x and y, along with the radius, we do this with MPI\_Broadcast.
 
@@ -95,10 +97,55 @@ When done, all tasks will send their data back to the first task and run MPI\_Fi
 \section{Execution times}
 In this section we will present the execution times of the filters.
 
+It is worth mentioning that the times for all graphs below are in seconds.
+
+The tests were performed on four images with sizes as can be seen in \ref{tab:table1}.
+
+\begin{table}[H]
+  \centering
+  \caption{The sizes for the images used in the tests.}
+  \begin{tabular}{|*{3}{p{30mm}|}}
+    \hline
+    \textbf{Image name} & \textbf{x pixels } & \textbf{y pixels} \\ \hline
+           {im1.ppm} & {676} & {763} \\ \hline
+           {im2.ppm} & {1024} & {1024} \\ \hline
+           {im3.ppm} & {1600} & {1200} \\ \hline
+           {im4.ppm} & {3000} & {3000} \\ \hline
+  \end{tabular}
+  \label{tab:table1}
+\end{table}
+
 \subsection{Blur filter}
+Here we saw that with an increase in the number of threads we get a decrease in time, which we wanted to attain.
+
+Our result show that if we increase the number of threads, we will get a decrease in time. But this relationship is not linear due to deminishing returns, since the problem is not perfectly parallell the serial section sections start to dominate the execution time.
+
+The results for image 1 and image 2 can the seen in figure \ref{fig:im1-blur} and figure \ref{fig:im2-blur} respectively. 
+
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/im1-blur.png}}
+  \caption{Result for the blurfilter run on image 1.}
+  \label{fig:im1-blur}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/im2-blur.png}}
+  \caption{Result for the blurfilter run on image 2.}
+  \label{fig:im2-blur}
+\end{figure}
 
 
 \subsection{Threshold filter}
+
+\begin{figure}[H]
+  \centering
+  \scalebox{0.48}{\includegraphics{img/threshold.png}}
+  \caption{Result for the thresholdfilter.}
+  \label{fig:threshold}
+\end{figure}
 
 
 \end{document}

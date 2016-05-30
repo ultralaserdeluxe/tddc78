@@ -107,7 +107,7 @@ int main() {
 
   double endtime = omp_get_wtime();
   printf("Time: %f\n", endtime-starttime);
-  printf("The temperature of element T(5,5): %f\n", T[(N+2)*5 + 5]);
+  printf("The temperature of element T(1,1): %f\n", T[(N+2)*1 + 1]);
 
   /* print_T(T); */
 

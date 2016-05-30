@@ -177,7 +177,7 @@ void calc_stuff(int ysize, int xsize, int world_size, int radius, int* counts, i
     counts_rad[i] = (yends_rad[i] - ystarts_rad[i]) * xsize;
     offsets_rad[i] = ystarts_rad[i] * xsize;
 
-    printf("rank=%d ystart=%d yend=%d count=%d offset=%d ystart_rad=%d yend_rad=%d offset_rad=%d count_rad=%d\n", i, ystart, yend, counts[i], offsets[i], ystarts_rad[i], yends_rad[i], offsets_rad[i], counts_rad[i]);
+    /* printf("rank=%d ystart=%d yend=%d count=%d offset=%d ystart_rad=%d yend_rad=%d offset_rad=%d count_rad=%d\n", i, ystart, yend, counts[i], offsets[i], ystarts_rad[i], yends_rad[i], offsets_rad[i], counts_rad[i]); */
   }    
 }
 
