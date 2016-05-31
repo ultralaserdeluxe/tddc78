@@ -44,7 +44,15 @@ float wall_collide(pcord_t *p, cord_t wall){
     return gPreassure ;
 }
 
+int above_wall(pcord_t *p, cord_t wall){
+  if(p->y < wall.y0) return 1;
+  else return 0;
+}
 
+int below_wall(pcord_t *p, cord_t wall){
+  if(p->y > wall.y1) return 1;
+  else return 0;
+}
 
 float collide(pcord_t *p1, pcord_t *p2){
     double a,b,c;

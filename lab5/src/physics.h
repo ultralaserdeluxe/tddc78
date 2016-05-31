@@ -11,6 +11,12 @@ int feuler(pcord_t *a,
 float wall_collide(pcord_t *p,
 		   cord_t wall) ;
 
+int above_wall(pcord_t *p,
+	       cord_t wall) ;
+
+int below_wall(pcord_t *p,
+	       cord_t wall) ;
+
 
 float collide(pcord_t *p1,
 	      pcord_t *p2) ;
