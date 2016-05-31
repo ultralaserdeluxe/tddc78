@@ -89,6 +89,8 @@ int main(int argc, char** argv){
 
   vector<pcord_t> up;
   vector<pcord_t> down;
+
+  double start_time = MPI::Wtime();
   
   float local_momentum = 0;
   for(unsigned t = 0; t < TIME; t += STEP_SIZE){
@@ -160,12 +162,11 @@ int main(int argc, char** argv){
 
   float global_momentum;
   MPI::COMM_WORLD.Reduce(&local_momentum, &global_momentum, 1, MPI::FLOAT, MPI::SUM, 0);
+  float pressure = calc_pressure(global_momentum, global_walls);
 
-  if(rank == 0){
-    printf("global_momentum=%f", global_momentum);
-    printf(" pressure=%f\n", calc_pressure(global_momentum, global_walls));
-  }
+  double end_time = MPI::Wtime();
 
+  if(rank == 0) cout << "global_momentum=" << global_momentum << "\tpressure=" << pressure << "\ttime=" << end_time - start_time << endl;
 
   MPI::Finalize();
   return 0;
