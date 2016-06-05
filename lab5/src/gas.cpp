@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <math.h>
 #include <time.h>
@@ -15,7 +16,6 @@
 
 using namespace std;
 
-MPI::Datatype mpi_pcord_t;
 
 void init_particles(vector<pcord_t>& particles, int n_particles, cord_t local_walls){
   srand(time(NULL));
@@ -70,11 +70,13 @@ cord_t get_local_walls(cord_t global_walls, int rank, int world_size){
 }
 
 int main(int argc, char** argv){
-  MPI::Init(argc, argv);
-  int rank = MPI::COMM_WORLD.Get_rank();
-  int world_size = MPI::COMM_WORLD.Get_size();
+  MPI_Init(NULL, NULL);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int world_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  cord_t global_walls = {0, 10, 0, 1000000};
+  cord_t global_walls = {0, BOX_HORIZ_SIZE, 0, BOX_VERT_SIZE};
   cord_t local_walls = get_local_walls(global_walls, rank, world_size);
 
   int local_particles = N_PARTICLES/world_size;
@@ -84,13 +86,13 @@ int main(int argc, char** argv){
 #ifdef DEBUG
   if(rank == 0) cout << "global_walls.y0=" << global_walls.y0 << " global_walls.y1=" << global_walls.y1 << endl;
   cout << "rank=" << rank << " local_walls.y0=" << local_walls.y0 << " local_walls.y1=" << local_walls.y1 << " local_particles=" << local_particles << endl;
-  MPI::COMM_WORLD.Barrier();
+  MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
   vector<pcord_t> up;
   vector<pcord_t> down;
 
-  double start_time = MPI::Wtime();
+  double start_time = MPI_Wtime();
   
   float local_momentum = 0;
   for(unsigned t = 0; t < TIME; t += STEP_SIZE){
@@ -116,17 +118,18 @@ int main(int argc, char** argv){
     // Send stuff upwards
     int up_sends = (int)up.size();
     if(rank != 0){
-      MPI::COMM_WORLD.Send(&up_sends, 1, MPI::INTEGER, rank - 1, 0);
-      for(int i = 0; i < up_sends; i++) MPI::COMM_WORLD.Send(&up.at(i), 4, MPI::FLOAT, rank - 1, 0);
+      MPI_Send(&up_sends, 1, MPI_INTEGER, rank - 1, 0, MPI_COMM_WORLD);
+      for(int i = 0; i < up_sends; i++) MPI_Send(&up.at(i), 4, MPI_FLOAT, rank - 1, 0, MPI_COMM_WORLD);
     }
     
     // Recv stuff from below
-  int up_recvs = 0;
+    MPI_Status status;
+    int up_recvs = 0;
     if(rank != world_size - 1){
-      MPI::COMM_WORLD.Recv(&up_recvs, 1, MPI::INTEGER, rank + 1, 0);
+      MPI_Recv(&up_recvs, 1, MPI_INTEGER, rank + 1, 0, MPI_COMM_WORLD, &status);
       pcord_t up_particle;
       for(int i = 0; i < up_recvs; i++){
-	MPI::COMM_WORLD.Recv(&up_particle, 4, MPI::FLOAT, rank + 1, 0);
+	MPI_Recv(&up_particle, 4, MPI_FLOAT, rank + 1, 0, MPI_COMM_WORLD, &status);
 	particles.push_back(up_particle);
       }
     }
@@ -134,17 +137,17 @@ int main(int argc, char** argv){
     // Send stuff downwards
     int down_sends = (int)down.size();
     if(rank != world_size - 1){
-      MPI::COMM_WORLD.Send(&down_sends, 1, MPI::INTEGER, rank + 1, 0);
-      for(int i = 0; i < down_sends; i++) MPI::COMM_WORLD.Send(&down.at(i), 4, MPI::FLOAT, rank + 1, 0);
+      MPI_Send(&down_sends, 1, MPI_INTEGER, rank + 1, 0, MPI_COMM_WORLD);
+      for(int i = 0; i < down_sends; i++) MPI_Send(&down.at(i), 4, MPI_FLOAT, rank + 1, 0, MPI_COMM_WORLD);
     }
 
     // Recv stuff from above
     int down_recvs = 0;
     if(rank != 0){
-      MPI::COMM_WORLD.Recv(&down_recvs, 1, MPI::INTEGER, rank - 1, 0);
+      MPI_Recv(&down_recvs, 1, MPI_INTEGER, rank - 1, 0, MPI_COMM_WORLD, &status);
       pcord_t down_particle;
       for(int i = 0; i < down_recvs; i++){
-	MPI::COMM_WORLD.Recv(&down_particle, 4, MPI::FLOAT, rank - 1, 0);
+	MPI_Recv(&down_particle, 4, MPI_FLOAT, rank - 1, 0, MPI_COMM_WORLD, &status);
 	particles.push_back(down_particle);
       }
     }
@@ -157,17 +160,17 @@ int main(int argc, char** argv){
     cout << "t=" << t << "\trank=" << rank << "\tup_sends=" << up_sends << "\tup_recvs=" << up_recvs << "\tdown_sends=" << down_sends <<  "\tdown_recvs=" << down_recvs << "\tpart_count=" << particles.size() << endl;
 #endif
 
-    MPI::COMM_WORLD.Barrier();
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   float global_momentum;
-  MPI::COMM_WORLD.Reduce(&local_momentum, &global_momentum, 1, MPI::FLOAT, MPI::SUM, 0);
+  MPI_Reduce(&local_momentum, &global_momentum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
   float pressure = calc_pressure(global_momentum, global_walls);
 
-  double end_time = MPI::Wtime();
+  double end_time = MPI_Wtime();
 
   if(rank == 0) cout << "global_momentum=" << global_momentum << "\tpressure=" << pressure << "\ttime=" << end_time - start_time << endl;
 
-  MPI::Finalize();
+  MPI_Finalize();
   return 0;
 }
