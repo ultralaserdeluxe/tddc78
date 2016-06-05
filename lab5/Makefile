@@ -1,4 +1,4 @@
-CXX = mpic++
+CXX = mpicxx
 
 SRC_DIR = src
 OBJ_DIR = obj

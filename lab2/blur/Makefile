@@ -1,6 +1,6 @@
-CC = gcc
+CC = $(if $(findstring triolith,$(shell uname -n)),icc,gcc)
 CFLAGS = -std=gnu99 -Wall -pedantic
-LDFLAGS = -l pthread
+LDFLAGS = -lpthread
 
 SRC_DIR = src
 OBJ_DIR = obj

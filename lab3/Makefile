@@ -1,4 +1,4 @@
-CC = gcc-4.9
+CC = $(if $(findstring triolith,$(shell uname -n)),icc,gcc-4.9)
 CFLAGS = -fopenmp -std=c99 -Wall -pedantic
 
 SRC_DIR = src
