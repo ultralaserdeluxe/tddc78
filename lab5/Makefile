@@ -12,7 +12,7 @@ $(BIN_DIR)/$(BIN): $(OBJS)
 	mkdir -p $(BIN_DIR)
 	$(CXX) -o $@ $^
 
-$(OBJ_DIR)/%.o: src/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CXX) -c -o $@ $<
 

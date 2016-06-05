@@ -1,24 +1,23 @@
-CC = gcc
+CC = mpicc
 CFLAGS = -std=gnu99 -Wall -pedantic
 
 SRC_DIR = src
 OBJ_DIR = obj
-
 BIN_DIR = bin
-BIN_NAME = threshold
-BIN_FULL_NAME = $(BIN_DIR)/$(BIN_NAME)
 
-.PHONY: all
-all: $(BIN_FULL_NAME)
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+BIN = threshold
 
-.PHONY: clean
-clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
-
-$(BIN_FULL_NAME): $(OBJ_DIR)/$(BIN_NAME).o $(OBJ_DIR)/ppm.o
+$(BIN_DIR)/$(BIN): $(OBJS)
 	mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ -l mpi
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+.PHONY: clean
+clean:
+	rm -rf $(BIN_DIR)
+	rm -rf $(OBJ_DIR)
