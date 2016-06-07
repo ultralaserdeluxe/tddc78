@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include <mpi.h>
+#include <VT.h>
 
 #include "ppm.h"
 
@@ -26,8 +27,8 @@ int get_ystart(int ysize, int rank, int world_size);
 
 int main(int argc, char** argv)
 {
-  VT_initialize();
-  VT_enter();
+  VT_initialize(&argc, &argv);
+  VT_enter(0, 0);
   MPI_Init(NULL, NULL);
   int rank, world_size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -93,7 +94,7 @@ int main(int argc, char** argv)
   }
   
   MPI_Finalize();
-  VT_end();
+  VT_end(0);
   exit(0);
 }
 
