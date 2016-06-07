@@ -18,7 +18,7 @@ using namespace std;
 
 
 void init_particles(vector<pcord_t>& particles, int n_particles, cord_t local_walls){
-  srand(time(NULL));
+  // srand(time(NULL));
 
   for(int i = 0; i < n_particles; i++){
     pcord_t particle;
