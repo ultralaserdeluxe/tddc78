@@ -72,7 +72,7 @@ The blur filter uses a normal distribution together with a given radius to calcu
 The threshold filter first calculates a mean value for every pixel in the image, it will then go through the image one more time and either set every pixel to black or white depending if the pixel value is over or under the calculated mean value.
 
 \section{Our implementation}
-This section will describe how we used MPI to parallelize the execution of the programs.
+This section will describe how we used Pthreads to parallelize the execution of the programs.
 
 \subsection{Blur filter}
 Just as in the first lab, each thread will have an overlapping region of the image that they will apply the filter to. But in this lab the threads will have access to the same data.
