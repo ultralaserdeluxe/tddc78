@@ -1,0 +1,14 @@
+1 core
+global_momentum=7.07583e+07	pressure=1.76896	time=5.8408
+
+2 cores
+global_momentum=6.16279e+07	pressure=1.5407	time=2.0158
+
+4 cores
+global_momentum=5.593e+07	pressure=1.39825	time=0.999379
+
+8 cores
+global_momentum=4.96018e+07	pressure=1.24004	time=0.706267
+
+16 cores
+global_momentum=4.59988e+07	pressure=1.14997	time=0.554993
