@@ -60,55 +60,46 @@
 
 
 \section{Totalview}
-Most of the time we write our code in emacs, so we never use built-in debuggers as can be found in for some IDE:s, such as Eclipse. The only other debugger that we have tried out in previous courses before this one, is GDB. The biggest difference between these two is of course that GDB is run from a terminal while totalview is a graphical tool. And that totalview was even harder to setup and run than GDB.
+Most of the time we write our code in Emacs, so we never use built-in debuggers as can be found in for some IDE:s, such as Eclipse. The only other debugger that we have tried out in previous courses before this one, is GDB. The most noticable difference between these two is of course that GDB is run from a terminal while Totalview is a graphical tool.
 
-After using it for a couple of hours, We found the option how to debug while in the code, and tried this out for a while (this can be seen in figure 1), but as we already had completed all the other labs before starting this one we didn't have any code to debug that didn't already work. This made it kind of useless.
+After fiddling with Totalview for a while we managed to get our source code visible in the debugger and setting breakpoints and running the program. The code contained no bugs that we were aware of, so we generated one by switching the operands of a subtracion as can be seen in listing \ref{lst:org} and \ref{lst:bug}.
 
-Maybe it would have been better if had been introduce in the lab series earlier. And even though we didn't like the program, we understand that it could be useful for larger projects.
+\begin{lstlisting}[caption=Original code., label=lst:org, breaklines=true, language=c]
+threshold_filter(data, xsize, yends[rank]-ystarts[rank], colmax, world_size);
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Code with a bug in it., label=lst:bug, breaklines=true, language=c]
+threshold_filter(data, xsize, ystarts[rank]-yends[rank], colmax, world_size);
+\end{lstlisting}
+
+The result of the bug is that the filter is not doing anything, which makes it logical to start debugging at the call to the filter. In figure \ref{fig:totview_breakpoint} a breakpoint has been set at the call to the filter. In figure \ref{fig:totview_variables} the debugger has entered the filter function where we can see that the argument ysize has a negative value causing the filter to never enter the its for-loop. The bug has been found!
 
 \begin{figure}[H]
   \centering
-  \scalebox{0.27}{\includegraphics{img/totalview.png}}
-  \caption{Debugging with Totalview.}
-  \label{fig:totalview}
+  \includegraphics[scale=0.35, angle=90]{img/totview3.png}
+  \caption{Setting a breakpoint at the call to the filtering function.}
+  \label{fig:totview_breakpoint}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.35, angle=90]{img/totview4.png}
+  \caption{A faulty value found in the arguments to the filter.}
+  \label{fig:totview_variables}
+\end{figure}
 
 \section{ITAC}
-At first we thought it was less hard to compile ITAC with icc, but then we had forgotten to include the VT.h functions, so ITAC only showed very little information as can be seen in figure \ref{fig:itac}. When doing this we got the compilation to work at first, but then it stopped working all os a sudden and we never got it to work again unfortunately. Our opinion of this program is the same as above, even though we understand it could be good for optimizations we didn't need to use it.
-
-Our conclusion is that these kind of tools is useless.
-
-%% We had less problem to compile with this program and to run the ITAC application, but when we were trying to see useful information we didn't manage at all, it didn't seem to matter what settings we used it only looked as in figure \ref{fig:itac}
+After a bit of trouble with compiling and linking our program with ITAC functions we finally got it to work. ITAC was quite straight forward to use and with ease we could see which functions in our program consumed the most time. This can be seen in figure \ref{fig:itac}. As can be seen no single function seem to be to time consuming. And the one that takes the most time is MPI\_Scatterv which can't be optimized further.
 
 \begin{figure}[H]
   \centering
-  \scalebox{0.27}{\includegraphics{img/itac.png}}
+  \includegraphics[scale=0.30, angle=90]{img/itac2.png}
   \caption{Intel ITAC.}
   \label{fig:itac}
 \end{figure}
 
+\section{Discussion}
+Since using debuggers is quite a rare thing for us, Totalview felt very tricky to use. This is to be expected because Totalview is an advanced debugger, more advanced than GDB since it is specialized for multithreaded programs. However, when writing large parallel programs, we think it might be worth learning to use a debugger like Totalview, since a lot of bugs in parallel programs are very confusing and much harder to find than in serial programs.
 
+ITAC on the other hand, was quite easy to use but a bit difficult to install and compile. Once you figured it out though it was a breeze. If you need to speed up your program and dont know where to start, it is definitely worth learning ITAC.
 \end{document}
-
-%% \begin{table}[H]
-%%   \centering
-%%   \caption{Miss rates}
-%%   \begin{tabular}{|*{3}{p{20mm}|}}
-%%     \hline
-%%     \textbf{Miss rates} & {test1} & {test2} \\ \hline
-%%            {cache1} & {0.0091} & {0.1577} \\ \hline
-%%            {cache2} & {0.0177} & {0.0235} \\ \hline
-%%   \end{tabular}
-%%   \label{tab:table1}
-%% \end{table}
-
-
-%% \begin{figure}[H]
-%% 	\centering
-%% 	\scalebox{0.342}{\includegraphics{img/data-cache.png}}
-%% 	\caption{Only data stored in cache.}
-%% 	\label{fig:data-cache}
-%% \end{figure}
-
-%%thinlinc-und.ida.liu.se
