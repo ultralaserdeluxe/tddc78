@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -std=gnu99 -Wall -pedantic -I$(VT_ROOT)/include
+CFLAGS = -g -tcollect -std=gnu99 -Wall -pedantic -I$(VT_ROOT)/include
 LDFLAGS = -L$(VT_LIB_DIR)
 LDLIBS =  -lVT $(VT_ADD_LIBS)
 
@@ -14,7 +14,7 @@ BIN = $(BIN_DIR)/threshold
 $(BIN): $(OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS)  -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(OBJS): | $(OBJ_DIR)

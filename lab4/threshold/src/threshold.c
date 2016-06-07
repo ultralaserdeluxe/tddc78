@@ -77,7 +77,8 @@ int main(int argc, char** argv)
   if (rank == ROOT) printf("Running filter.\n");
   double start_time = MPI_Wtime();
 
-  threshold_filter(data, xsize, yends[rank]-ystarts[rank], colmax, world_size);
+  /* threshold_filter(data, xsize, yends[rank]-ystarts[rank], colmax, world_size); */
+  threshold_filter(data, xsize, ystarts[rank]-yends[rank], colmax, world_size);
 
   MPI_Barrier(MPI_COMM_WORLD);
   double end_time = MPI_Wtime();
