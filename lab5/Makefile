@@ -6,15 +6,17 @@ BIN_DIR = bin
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
-BIN = gas
+BIN = $(BIN_DIR)/gas
 
-$(BIN_DIR)/$(BIN): $(OBJS)
-	mkdir -p $(BIN_DIR)
+$(BIN): $(OBJS) | $(BIN_DIR)
 	$(CXX) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	mkdir -p $(OBJ_DIR)
 	$(CXX) -c -o $@ $<
+
+$(OBJS): | $(OBJ_DIR)
+$(OBJ_DIR) $(BIN_DIR):
+	mkdir -p $@
 
 .PHONY: clean
 clean:
